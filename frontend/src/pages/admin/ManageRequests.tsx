@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Eye, Trash2, Phone, MapPin, Clock, AlertCircle, Filter, Edit2, Save, X, UserCheck, User } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -25,6 +25,7 @@ const ManageRequests: React.FC = () => {
     urgency_level: '',
     search: ''
   });
+  const editingInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     loadRequests();
@@ -40,21 +41,21 @@ const ManageRequests: React.FC = () => {
         page: 1,
         limit: 50
       };
-      console.log('Loading requests with params:', params);
       const result = await adminAPI.getRequests(params);
-      console.log('Raw API result:', result);
-      console.log('Result type:', typeof result);
-      console.log('Is array:', Array.isArray(result));
       
       // Ensure we always set an array
+      let requestsData: TechRequest[] = [];
       if (Array.isArray(result)) {
-        setRequests(result);
+        requestsData = result;
       } else if (result && Array.isArray((result as any).data)) {
-        setRequests((result as any).data);
+        requestsData = (result as any).data;
       } else {
         console.warn('Unexpected result format:', result);
-        setRequests([]);
+        requestsData = [];
       }
+      
+      
+      setRequests(requestsData);
     } catch (err) {
       console.error('Error loading requests:', err);
       setError(getErrorMessage(err));
@@ -123,8 +124,12 @@ const ManageRequests: React.FC = () => {
   const handleSaveEdit = useCallback(async () => {
     if (!editingRequestId || !editingField) return;
 
+    // Get the current value from the input element
+    const currentValue = editingInputRef.current?.value || '';
+    const dataToSave = { [editingField]: currentValue };
+
     try {
-      const updatedRequest = await adminAPI.updateRequestAsAdmin(editingRequestId, editFormData);
+      const updatedRequest = await adminAPI.updateRequestAsAdmin(editingRequestId, dataToSave);
       
       // Update local state with the response data instead of reloading all requests
       setRequests(prevRequests =>
@@ -141,6 +146,7 @@ const ManageRequests: React.FC = () => {
       handleCancelEdit();
       setSuccess('שדה עודכן בהצלחה');
     } catch (err) {
+      console.error('❌ SAVE ERROR:', err);
       setError(getErrorMessage(err));
     }
   }, [editingRequestId, editingField, editFormData, handleCancelEdit, selectedRequest]);
@@ -154,21 +160,24 @@ const ManageRequests: React.FC = () => {
     const value = request[field as keyof TechRequest] as string;
 
     if (isEditing) {
-      const inputKey = `${request.id}-${field}`;
+      // Use stable key that doesn't change during editing
+      const inputKey = `edit-${field}`;
       
       if (type === 'textarea') {
         const currentValue = (editFormData[field] as string) || '';
         
         return (
           <div className="flex items-start space-x-reverse space-x-2">
-            <textarea
+            <Textarea
               key={inputKey}
-              value={currentValue}
-              onChange={(e) => handleFieldChange(field, e.target.value)}
-              className="flex-1 min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              defaultValue={currentValue}
+              ref={editingInputRef as React.RefObject<HTMLTextAreaElement>}
+              onBlur={(e) => {
+                handleFieldChange(field, e.target.value);
+              }}
+              className="flex-1"
               rows={3}
               autoFocus
-              style={{ unicodeBidi: 'plaintext' }}
             />
             <div className="flex space-x-reverse space-x-1">
               <Button size="sm" onClick={handleSaveEdit}>
@@ -209,14 +218,16 @@ const ManageRequests: React.FC = () => {
         
         return (
           <div className="flex items-center space-x-reverse space-x-2">
-            <input
+            <Input
               key={inputKey}
               type="text"
-              value={currentValue}
-              onChange={(e) => handleFieldChange(field, e.target.value)}
-              className="flex-1 h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              defaultValue={currentValue}
+              ref={editingInputRef as React.RefObject<HTMLInputElement>}
+              onBlur={(e) => {
+                handleFieldChange(field, e.target.value);
+              }}
+              className="flex-1"
               autoFocus
-              style={{ unicodeBidi: 'plaintext' }}
             />
             <div className="flex space-x-reverse space-x-1">
               <Button size="sm" onClick={handleSaveEdit}>
@@ -456,13 +467,11 @@ const ManageRequests: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">חיפוש</label>
-              <input
+              <Input
                 type="text"
                 placeholder="חפש לפי שם, טלפון או תיאור..."
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                style={{ unicodeBidi: 'plaintext' }}
               />
             </div>
           </div>

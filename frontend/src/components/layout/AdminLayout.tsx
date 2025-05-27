@@ -11,7 +11,6 @@ import {
   X
 } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Card } from '../ui/card';
 import { authAPI } from '../../services/api';
 import { getErrorMessage } from '../../lib/utils';
 

@@ -1,3 +1,7 @@
+/*
+  Tailwind CSS directives - these are processed by PostCSS during build
+  VSCode may show warnings, but these are valid Tailwind directives
+*/
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
