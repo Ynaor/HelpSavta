@@ -26,6 +26,7 @@ const ManageRequests: React.FC = () => {
     search: ''
   });
   const editingInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const cursorPositionRef = useRef<number>(0);
 
   useEffect(() => {
     loadRequests();
@@ -112,7 +113,7 @@ const ManageRequests: React.FC = () => {
   const handleStartEdit = useCallback((requestId: number, field: string, currentValue: any) => {
     setEditingRequestId(requestId);
     setEditingField(field);
-    setEditFormData({ [field]: currentValue });
+    setEditFormData({ [field]: currentValue || '' });
   }, []);
 
   const handleCancelEdit = useCallback(() => {
@@ -124,8 +125,8 @@ const ManageRequests: React.FC = () => {
   const handleSaveEdit = useCallback(async () => {
     if (!editingRequestId || !editingField) return;
 
-    // Get the current value from the input element
-    const currentValue = editingInputRef.current?.value || '';
+    // Get the current value from editFormData state
+    const currentValue = editFormData[editingField as keyof AdminRequestUpdateForm] || '';
     const dataToSave = { [editingField]: currentValue };
 
     try {
@@ -151,9 +152,39 @@ const ManageRequests: React.FC = () => {
     }
   }, [editingRequestId, editingField, editFormData, handleCancelEdit, selectedRequest]);
 
-  const handleFieldChange = useCallback((field: keyof AdminRequestUpdateForm, value: string) => {
+  const handleFieldChange = useCallback((field: keyof AdminRequestUpdateForm, value: string, cursorPos?: number) => {
+    // Store cursor position for restoration after render
+    if (cursorPos !== undefined) {
+      cursorPositionRef.current = cursorPos;
+    }
+    
     setEditFormData(prev => ({ ...prev, [field]: value }));
-  }, []);
+  }, [editFormData]);
+
+  // Effect to restore cursor position after state updates
+  useEffect(() => {
+    if (editingInputRef.current && cursorPositionRef.current !== undefined) {
+      const element = editingInputRef.current;
+      const position = cursorPositionRef.current;
+      
+      // Use setTimeout to ensure DOM has updated
+      setTimeout(() => {
+        element.setSelectionRange(position, position);
+      }, 0);
+    }
+  }, [editFormData]);
+
+  // Helper function to detect Hebrew text
+  const containsHebrew = (text: string): boolean => {
+    const hebrewRegex = /[\u0590-\u05FF]/;
+    return hebrewRegex.test(text);
+  };
+
+  // Helper function to get text direction based on content
+  const getTextDirection = (text: string): string => {
+    if (!text) return 'auto';
+    return containsHebrew(text) ? 'rtl' : 'ltr';
+  };
 
   const renderEditableField = (request: TechRequest, field: keyof AdminRequestUpdateForm, label: string, type: 'text' | 'textarea' | 'select' = 'text') => {
     const isEditing = editingRequestId === request.id && editingField === field;
@@ -162,22 +193,27 @@ const ManageRequests: React.FC = () => {
     if (isEditing) {
       // Use stable key that doesn't change during editing
       const inputKey = `edit-${field}`;
+      const currentValue = editFormData[field] as string || '';
+      const currentDirection = getTextDirection(currentValue);
+      
       
       if (type === 'textarea') {
-        const currentValue = (editFormData[field] as string) || '';
-        
         return (
           <div className="flex items-start space-x-reverse space-x-2">
             <Textarea
               key={inputKey}
-              defaultValue={currentValue}
+              value={currentValue}
               ref={editingInputRef as React.RefObject<HTMLTextAreaElement>}
-              onBlur={(e) => {
-                handleFieldChange(field, e.target.value);
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const cursorPos = e.target.selectionStart;
+                handleFieldChange(field, newValue, cursorPos || 0);
               }}
               className="flex-1"
               rows={3}
               autoFocus
+              dir={currentDirection}
+              style={{ textAlign: containsHebrew(currentValue) ? 'right' : 'left' }}
             />
             <div className="flex space-x-reverse space-x-1">
               <Button size="sm" onClick={handleSaveEdit}>
@@ -214,20 +250,22 @@ const ManageRequests: React.FC = () => {
           </div>
         );
       } else {
-        const currentValue = (editFormData[field] as string) || '';
-        
         return (
           <div className="flex items-center space-x-reverse space-x-2">
             <Input
               key={inputKey}
               type="text"
-              defaultValue={currentValue}
+              value={currentValue}
               ref={editingInputRef as React.RefObject<HTMLInputElement>}
-              onBlur={(e) => {
-                handleFieldChange(field, e.target.value);
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const cursorPos = e.target.selectionStart;
+                handleFieldChange(field, newValue, cursorPos || 0);
               }}
               className="flex-1"
               autoFocus
+              dir={currentDirection}
+              style={{ textAlign: containsHebrew(currentValue) ? 'right' : 'left' }}
             />
             <div className="flex space-x-reverse space-x-1">
               <Button size="sm" onClick={handleSaveEdit}>
@@ -472,6 +510,8 @@ const ManageRequests: React.FC = () => {
                 placeholder="חפש לפי שם, טלפון או תיאור..."
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                dir={getTextDirection(filters.search)}
+                style={{ textAlign: containsHebrew(filters.search) ? 'right' : 'left' }}
               />
             </div>
           </div>
