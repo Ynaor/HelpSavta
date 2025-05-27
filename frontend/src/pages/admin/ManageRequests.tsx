@@ -308,7 +308,6 @@ const ManageRequests: React.FC = () => {
     const baseClass = "px-2 py-1 rounded-full text-xs font-medium border";
     switch (status) {
       case 'pending': return `${baseClass} status-pending`;
-      case 'scheduled': return `${baseClass} status-scheduled`;
       case 'in_progress': return `${baseClass} status-in_progress`;
       case 'completed': return `${baseClass} status-completed`;
       case 'cancelled': return `${baseClass} status-cancelled`;
@@ -438,7 +437,6 @@ const ManageRequests: React.FC = () => {
               className="flex-1 min-w-[150px]"
             >
               <option value="pending">{STATUS_LABELS.pending}</option>
-              <option value="scheduled">{STATUS_LABELS.scheduled}</option>
               <option value="in_progress">{STATUS_LABELS.in_progress}</option>
               <option value="completed">{STATUS_LABELS.completed}</option>
               <option value="cancelled">{STATUS_LABELS.cancelled}</option>
@@ -484,7 +482,6 @@ const ManageRequests: React.FC = () => {
               >
                 <option value="">כל הסטטוסים</option>
                 <option value="pending">{STATUS_LABELS.pending}</option>
-                <option value="scheduled">{STATUS_LABELS.scheduled}</option>
                 <option value="in_progress">{STATUS_LABELS.in_progress}</option>
                 <option value="completed">{STATUS_LABELS.completed}</option>
                 <option value="cancelled">{STATUS_LABELS.cancelled}</option>

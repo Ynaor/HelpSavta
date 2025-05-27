@@ -202,22 +202,7 @@ router.put('/:id', validateBody(schemas.updateRequestStatus), asyncHandler(async
     }
   });
 
-  // Send approval email if status changed from "pending" to "scheduled"
-  if (previousStatus === 'pending' && currentStatus === 'scheduled') {
-    if (updatedRequest.scheduled_date && updatedRequest.scheduled_time) {
-      // Try to extract email from phone or use a placeholder
-      // In a real implementation, you'd want to have an email field in the request
-      const recipientEmail = `${updatedRequest.phone}@placeholder.com`; // This is just for logging
-      
-      await emailService.sendApprovalEmail(
-        recipientEmail,
-        updatedRequest.full_name,
-        updatedRequest.scheduled_date,
-        updatedRequest.scheduled_time,
-        updatedRequest.id
-      );
-    }
-  }
+  // Email trigger logic for scheduled status removed - no longer using scheduled status
 
   res.json({
     success: true,

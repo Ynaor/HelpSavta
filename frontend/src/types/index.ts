@@ -9,7 +9,7 @@ export interface TechRequest {
   urgency_level: 'low' | 'medium' | 'high' | 'urgent';
   scheduled_date?: string;
   scheduled_time?: string;
-  status: 'pending' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   notes?: string;
   assigned_admin_id?: number;
   assigned_admin?: AdminUser;
@@ -113,7 +113,6 @@ export interface DashboardStats {
 // Hebrew labels for status and urgency
 export const STATUS_LABELS: Record<TechRequest['status'], string> = {
   pending: 'ממתין',
-  scheduled: 'מתוזמן',
   in_progress: 'בטיפול',
   completed: 'הושלם',
   cancelled: 'בוטל'
@@ -141,7 +140,7 @@ export interface AdminRequestUpdateForm {
   urgency_level?: 'low' | 'medium' | 'high' | 'urgent';
   scheduled_date?: string;
   scheduled_time?: string;
-  status?: 'pending' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   notes?: string;
 }
 

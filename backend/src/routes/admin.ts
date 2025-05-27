@@ -19,7 +19,7 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
   const [
     totalRequests,
     pendingRequests,
-    scheduledRequests,
+    inProgressRequests,
     completedRequests,
     totalSlots,
     availableSlots,
@@ -27,7 +27,7 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
   ] = await Promise.all([
     prisma.techRequest.count(),
     prisma.techRequest.count({ where: { status: 'pending' } }),
-    prisma.techRequest.count({ where: { status: 'scheduled' } }),
+    prisma.techRequest.count({ where: { status: 'in_progress' } }),
     prisma.techRequest.count({ where: { status: 'completed' } }),
     prisma.availableSlot.count(),
     prisma.availableSlot.count({ where: { is_booked: false } }),
@@ -51,7 +51,7 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
   const urgentRequests = await prisma.techRequest.findMany({
     where: {
       urgency_level: 'urgent',
-      status: { in: ['pending', 'scheduled'] }
+      status: { in: ['pending', 'in_progress'] }
     },
     orderBy: { created_at: 'desc' },
     select: {
@@ -70,7 +70,7 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
         requests: {
           total: totalRequests,
           pending: pendingRequests,
-          scheduled: scheduledRequests,
+          in_progress: inProgressRequests,
           completed: completedRequests
         },
         slots: {
@@ -354,22 +354,7 @@ router.put('/requests/:id', validateBody(schemas.adminRequestUpdate), asyncHandl
       }
     });
 
-    // Send approval email if status changed from "pending" to "scheduled"
-    if (previousStatus === 'pending' && currentStatus === 'scheduled') {
-      if (updatedRequest.scheduled_date && updatedRequest.scheduled_time) {
-        // Try to extract email from phone or use a placeholder
-        // In a real implementation, you'd want to have an email field in the request
-        const recipientEmail = `${updatedRequest.phone}@placeholder.com`; // This is just for logging
-        
-        await emailService.sendApprovalEmail(
-          recipientEmail,
-          updatedRequest.full_name,
-          updatedRequest.scheduled_date,
-          updatedRequest.scheduled_time,
-          updatedRequest.id
-        );
-      }
-    }
+    // Email trigger logic for scheduled status removed - no longer using scheduled status
 
     res.json({
       success: true,

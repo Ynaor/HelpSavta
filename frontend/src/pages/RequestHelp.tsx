@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { ChevronRight, ChevronLeft, Check, Phone, AlertCircle } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check, AlertCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';

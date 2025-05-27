@@ -96,8 +96,8 @@ export const schemas = {
 
   // Update request status validation - בדיקת עדכון סטטוס בקשה
   updateRequestStatus: Joi.object({
-    status: Joi.string().valid('pending', 'scheduled', 'in_progress', 'completed', 'cancelled').required().messages({
-      'any.only': 'סטטוס חייב להיות: pending, scheduled, in_progress, completed, או cancelled',
+    status: Joi.string().valid('pending', 'in_progress', 'completed', 'cancelled').required().messages({
+      'any.only': 'סטטוס חייב להיות: pending, in_progress, completed, או cancelled',
       'any.required': 'סטטוס הוא שדה חובה'
     }),
     notes: Joi.string().max(500).optional().allow('').messages({
@@ -131,8 +131,8 @@ export const schemas = {
     urgency_level: Joi.string().valid('low', 'medium', 'high', 'urgent').optional().messages({
       'any.only': 'רמת דחיפות חייבת להיות: low, medium, high, או urgent'
     }),
-    status: Joi.string().valid('pending', 'scheduled', 'in_progress', 'completed', 'cancelled').optional().messages({
-      'any.only': 'סטטוס חייב להיות: pending, scheduled, in_progress, completed, או cancelled'
+    status: Joi.string().valid('pending', 'in_progress', 'completed', 'cancelled').optional().messages({
+      'any.only': 'סטטוס חייב להיות: pending, in_progress, completed, או cancelled'
     }),
     notes: Joi.string().max(500).optional().allow('').messages({
       'string.max': 'הערות חייבות להכיל עד 500 תווים'

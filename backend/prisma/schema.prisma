@@ -20,7 +20,7 @@ model TechRequest {
   urgency_level      String    @default("medium") // רמת דחיפות: low, medium, high, urgent
   scheduled_date     String?   // תאריך מתוכנן לביקור
   scheduled_time     String?   // שעת ביקור מתוכננת
-  status             String    @default("pending") // סטטוס: pending, scheduled, in_progress, completed, cancelled
+  status             String    @default("pending") // סטטוס: pending, in_progress, completed, cancelled
   notes              String?   // הערות נוספות
   assigned_admin_id  Int?      // מזהה המנהל שמטפל בבקשה
   created_at         DateTime  @default(now())

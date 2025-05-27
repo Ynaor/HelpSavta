@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  BarChart3,
   FileText,
   Calendar,
   Clock,
@@ -12,7 +11,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { DashboardStats, TechRequest, STATUS_LABELS, URGENCY_LABELS } from '../../types';
+import { DashboardStats, STATUS_LABELS, URGENCY_LABELS } from '../../types';
 import { adminAPI } from '../../services/api';
 import { formatDateTime, getErrorMessage } from '../../lib/utils';
 
@@ -195,10 +194,9 @@ const AdminDashboard: React.FC = () => {
                     <div className="flex items-center space-x-reverse space-x-2">
                       {request.status && (
                         <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
-                          request.status === 'pending' ? 'status-pending' :
-                          request.status === 'scheduled' ? 'status-scheduled' :
-                          request.status === 'completed' ? 'status-completed' :
-                          'bg-gray-100 text-gray-700'
+                          request.status === 'in_progress' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                          request.status === 'completed' ? 'bg-green-100 text-green-700 border-green-200' :
+                          'bg-gray-100 text-gray-700 border-gray-200'
                         }`}>
                           {STATUS_LABELS[request.status as keyof typeof STATUS_LABELS]}
                         </span>
