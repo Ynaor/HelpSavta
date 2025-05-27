@@ -15,7 +15,7 @@ const Home: React.FC = () => {
           </h1>
           <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto leading-relaxed">
             שירות התנדבותי לעזרה טכנית לגיל השלישי
-            <br />
+            <br />  
             מתנדבים מקצועיים מגיעים עד הבית
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -28,14 +28,14 @@ const Home: React.FC = () => {
                 בקש עזרה עכשיו
               </Button>
             </Link>
-            <Button 
+            {/* <Button 
               variant="outline" 
               size="lg"
-              className="border-white text-white hover:bg-white hover:text-orange-600 text-lg px-8 py-4"
+              className="bg-white text-orange-600 hover:bg-orange-50 text-lg px-8 py-4"
             >
               <Phone className="ml-2 w-5 h-5" />
               התקשר: 050-123-4567
-            </Button>
+            </Button> */}
           </div>
         </div>
       </section>

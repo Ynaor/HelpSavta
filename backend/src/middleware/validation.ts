@@ -7,9 +7,9 @@ import Joi from 'joi';
  */
 export const validateBody = (schema: Joi.ObjectSchema) => {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const { error, value } = schema.validate(req.body, { 
+    const { error, value } = schema.validate(req.body, {
       abortEarly: false,
-      stripUnknown: true 
+      stripUnknown: true
     });
 
     if (error) {
@@ -60,7 +60,7 @@ export const schemas = {
     urgency_level: Joi.string().valid('low', 'medium', 'high', 'urgent').default('medium').messages({
       'any.only': 'רמת דחיפות חייבת להיות: low, medium, high, או urgent'
     }),
-    notes: Joi.string().max(500).optional().messages({
+    notes: Joi.string().max(500).optional().allow('').messages({
       'string.max': 'הערות חייבות להכיל עד 500 תווים'
     })
   }),
@@ -100,7 +100,7 @@ export const schemas = {
       'any.only': 'סטטוס חייב להיות: pending, scheduled, in_progress, completed, או cancelled',
       'any.required': 'סטטוס הוא שדה חובה'
     }),
-    notes: Joi.string().max(500).optional().messages({
+    notes: Joi.string().max(500).optional().allow('').messages({
       'string.max': 'הערות חייבות להכיל עד 500 תווים'
     }),
     scheduled_date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).optional().messages({

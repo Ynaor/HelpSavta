@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Phone, Mail, Home, Settings, LogOut, Users, Calendar } from 'lucide-react';
+import { Phone, Mail, Home, LogOut, Users, Calendar } from 'lucide-react';
 import { Button } from '../ui/button';
 import { authAPI } from '../../services/api';
 
@@ -130,8 +130,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   to="/admin/login"
                   className="flex items-center space-x-reverse space-x-2 px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-orange-600 hover:bg-orange-50"
                 >
-                  <Settings className="w-4 h-4" />
-                  <span>כניסת מנהלים</span>
+                  {/* <Settings className="w-4 h-4" /> */}
+                  {/* <span>כניסת מנהלים</span> */}
                 </Link>
               )}
             </nav>

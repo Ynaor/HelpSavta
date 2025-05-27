@@ -3,6 +3,7 @@ import {
   TechRequest,
   AvailableSlot,
   AdminUser,
+  NotificationLog,
   CreateTechRequestForm,
   CreateSlotForm,
   LoginForm,
@@ -46,7 +47,15 @@ async function apiCall<T>(
     return response.data.data as T;
   } catch (error) {
     if (axios.isAxiosError(error)) {
+      console.error('API Error Response:', error.response?.data);
       const message = error.response?.data?.message || error.response?.data?.error || error.message;
+      // If validation errors exist, include them in the message
+      if (error.response?.data?.details) {
+        const validationErrors = error.response.data.details.map((detail: any) =>
+          `${detail.field}: ${detail.message}`
+        ).join(', ');
+        throw new Error(`${message} - ${validationErrors}`);
+      }
       throw new Error(message);
     }
     throw error;
@@ -56,16 +65,14 @@ async function apiCall<T>(
 // Generic paginated API call wrapper
 async function paginatedApiCall<T>(
   request: () => Promise<AxiosResponse<PaginatedResponse<T>>>
-): Promise<PaginatedResponse<T>['data'] & { pagination: PaginatedResponse<T>['pagination'] }> {
+): Promise<T[]> {
   try {
     const response = await request();
     if (!response.data.success) {
       throw new Error(response.data.error || response.data.message || 'API call failed');
     }
-    return {
-      ...response.data.data,
-      pagination: response.data.pagination
-    } as any;
+    // Return just the data array, not the pagination info
+    return response.data.data || [];
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const message = error.response?.data?.message || error.response?.data?.error || error.message;
@@ -163,8 +170,22 @@ export const adminAPI = {
   }) => 
     apiCall(() => api.post<ApiResponse<{ created: number }>>('/admin/slots/bulk', data)),
   
-  createAdmin: (data: { username: string; password: string }) => 
+  createAdmin: (data: { username: string; password: string }) =>
     apiCall(() => api.post<ApiResponse<AdminUser>>('/admin/create-admin', data)),
+  
+  getNotifications: (params?: {
+    type?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) =>
+    paginatedApiCall(() => api.get<PaginatedResponse<NotificationLog>>('/admin/notifications', { params })),
+  
+  resendNotification: (id: number) =>
+    apiCall(() => api.post<ApiResponse<NotificationLog>>(`/admin/notifications/${id}/resend`)),
+  
+  getAdmins: () =>
+    apiCall(() => api.get<ApiResponse<AdminUser[]>>('/admin/admins')),
 };
 
 export default api;

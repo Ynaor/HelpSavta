@@ -8,8 +8,8 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const prisma = new client_1.PrismaClient();
 async function main() {
     console.log('🌱 Starting database seeding...');
-    const defaultAdminUsername = process.env.DEFAULT_ADMIN_USERNAME || 'admin';
-    const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'admin123';
+    const defaultAdminUsername = process.env.DEFAULT_ADMIN_USERNAME;
+    const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD;
     const existingAdmin = await prisma.adminUser.findUnique({
         where: { username: defaultAdminUsername }
     });

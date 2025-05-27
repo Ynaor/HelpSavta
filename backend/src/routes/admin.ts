@@ -271,4 +271,26 @@ router.post('/create-admin', asyncHandler(async (req, res) => {
   });
 }));
 
+/**
+ * GET /api/admin/admins - Get all admin users
+ * קבלת כל משתמשי המנהל
+ */
+router.get('/admins', asyncHandler(async (req, res) => {
+  const admins = await prisma.adminUser.findMany({
+    orderBy: { created_at: 'desc' },
+    select: {
+      id: true,
+      username: true,
+      created_at: true,
+      updated_at: true
+      // Exclude password_hash for security
+    }
+  });
+
+  res.json({
+    success: true,
+    data: admins
+  });
+}));
+
 export default router;

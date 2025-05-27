@@ -1,5 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import * as dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 const prisma = new PrismaClient();
 
@@ -15,8 +19,8 @@ async function main() {
   console.log('🌱 Starting database seeding...');
 
   // Create default admin user
-  const defaultAdminUsername = process.env.DEFAULT_ADMIN_USERNAME || 'admin';
-  const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'admin123';
+  const defaultAdminUsername = process.env.DEFAULT_ADMIN_USERNAME;
+  const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD;
 
   // Check if admin already exists
   const existingAdmin = await prisma.adminUser.findUnique({

@@ -123,3 +123,9 @@ export const URGENCY_LABELS: Record<TechRequest['urgency_level'], string> = {
   high: 'גבוהה',
   urgent: 'דחוף'
 };
+
+// Admin form types
+export interface CreateAdminForm {
+  username: string;
+  password: string;
+}

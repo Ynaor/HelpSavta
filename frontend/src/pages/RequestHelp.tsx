@@ -74,6 +74,15 @@ const RequestHelp: React.FC = () => {
         setLoading(true);
         setError('');
 
+        console.log('Creating request with data:', {
+          full_name: data.full_name,
+          phone: data.phone,
+          address: data.address,
+          problem_description: data.problem_description,
+          urgency_level: data.urgency_level,
+          notes: data.notes
+        });
+
         // Create the request
         const request = await requestsAPI.create({
           full_name: data.full_name,
@@ -84,14 +93,21 @@ const RequestHelp: React.FC = () => {
           notes: data.notes
         });
 
+        console.log('Request created successfully:', request);
+
         // Book the selected slot
         if (selectedSlot) {
+          console.log('Booking slot:', selectedSlot.id, 'for request:', request.id);
           await slotsAPI.book(selectedSlot.id, request.id);
+          console.log('Slot booked successfully');
         }
 
         setSuccess(true);
       } catch (err) {
-        setError(getErrorMessage(err));
+        console.error('Error in request submission:', err);
+        const errorMessage = getErrorMessage(err);
+        console.error('Parsed error message:', errorMessage);
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -231,15 +247,21 @@ const RequestHelp: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium mb-2">מספר טלפון *</label>
                   <Input
-                    {...register('phone', { 
+                    {...register('phone', {
                       required: 'מספר טלפון הוא שדה חובה',
                       pattern: {
                         value: /^0[2-9]\d{7,8}$/,
                         message: 'מספר טלפון לא תקין'
-                      }
+                      },
+                      setValueAs: (value) => value?.replace(/[-\s]/g, '') || ''
                     })}
-                    placeholder="050-123-4567"
+                    placeholder="0501234567"
                     className={errors.phone ? 'border-red-500' : ''}
+                    onInput={(e) => {
+                      // Remove dashes and spaces from phone number as user types
+                      const target = e.target as HTMLInputElement;
+                      target.value = target.value.replace(/[-\s]/g, '');
+                    }}
                   />
                   {errors.phone && (
                     <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>
@@ -303,7 +325,7 @@ const RequestHelp: React.FC = () => {
                 ) : availableSlots.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-gray-600">אין זמנים זמינים כרגע</p>
-                    <p className="text-sm text-gray-500 mt-2">אנא נסה שוב מאוחר יותר או צור קשר טלפוני</p>
+                    <p className="text-sm text-gray-500 mt-2">אנא נסה שוב מאוחר יותר</p>
                   </div>
                 ) : (
                   <div className="space-y-6">

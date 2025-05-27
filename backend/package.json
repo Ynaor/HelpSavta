@@ -13,6 +13,9 @@
     "db:studio": "prisma studio",
     "db:seed": "ts-node prisma/seed.ts"
   },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "keywords": ["volunteer", "technical-help", "elderly", "community"],
   "author": "Tech Help Volunteers",
   "license": "MIT",

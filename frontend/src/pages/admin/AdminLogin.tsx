@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader } from '../../components/ui/card';
 import { LoginForm } from '../../types';
 import { authAPI } from '../../services/api';
 import { getErrorMessage } from '../../lib/utils';
@@ -24,8 +24,8 @@ const AdminLogin: React.FC = () => {
       
       await authAPI.login(data);
       
-      // Redirect to admin dashboard/requests page
-      navigate('/admin/requests');
+      // Redirect to admin dashboard
+      navigate('/admin/dashboard');
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -40,7 +40,7 @@ const AdminLogin: React.FC = () => {
           <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <LogIn className="w-8 h-8 text-orange-600" />
           </div>
-          <CardTitle className="text-2xl">כניסת מנהלים</CardTitle>
+          {/* <CardTitle className="text-2xl">כניסת מנהלים</CardTitle> */}
           <CardDescription>
             היכנס עם פרטי המנהל שלך לגישה למערכת הניהול
           </CardDescription>

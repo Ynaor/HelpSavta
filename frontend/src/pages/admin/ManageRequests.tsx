@@ -33,10 +33,25 @@ const ManageRequests: React.FC = () => {
         page: 1,
         limit: 50
       };
+      console.log('Loading requests with params:', params);
       const result = await adminAPI.getRequests(params);
-      setRequests(result || []);
+      console.log('Raw API result:', result);
+      console.log('Result type:', typeof result);
+      console.log('Is array:', Array.isArray(result));
+      
+      // Ensure we always set an array
+      if (Array.isArray(result)) {
+        setRequests(result);
+      } else if (result && Array.isArray((result as any).data)) {
+        setRequests((result as any).data);
+      } else {
+        console.warn('Unexpected result format:', result);
+        setRequests([]);
+      }
     } catch (err) {
+      console.error('Error loading requests:', err);
       setError(getErrorMessage(err));
+      setRequests([]); // Ensure requests is always an array
     } finally {
       setLoading(false);
     }
