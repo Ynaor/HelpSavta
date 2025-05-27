@@ -10,6 +10,91 @@ const router = express.Router();
  * GET /api/requests - Get all tech requests
  * קבלת כל בקשות העזרה הטכנית
  */
+/**
+ * GET /api/requests/test-email - Test email service configuration
+ * בדיקת הגדרות שירות האימייל
+ */
+router.get('/test-email', asyncHandler(async (req, res) => {
+  const isReady = emailService.isReady();
+  let connectionTest = false;
+  
+  if (isReady) {
+    connectionTest = await emailService.testConnection();
+  }
+  
+  // Check environment variables
+  const envCheck = {
+    EMAIL_HOST: !!process.env.EMAIL_HOST,
+    EMAIL_PORT: !!process.env.EMAIL_PORT,
+    EMAIL_USER: !!process.env.EMAIL_USER,
+    EMAIL_PASS: !!process.env.EMAIL_PASS,
+    EMAIL_FROM: !!process.env.EMAIL_FROM
+  };
+  
+  res.json({
+    success: true,
+    data: {
+      isReady,
+      connectionTest,
+      envCheck,
+      missingEnvVars: Object.entries(envCheck)
+        .filter(([key, value]) => !value)
+        .map(([key]) => key)
+    }
+  });
+}));
+
+/**
+ * GET /api/requests/test-send-email - Test sending email
+ * בדיקת שליחת אימייל בפועל
+ */
+router.get('/test-send-email', asyncHandler(async (req, res) => {
+  const testEmail = req.query.email as string || 'test@example.com';
+  
+  const success = await emailService.sendApprovalEmail(
+    testEmail,
+    'Test User',
+    '2025-05-28',
+    '14:00',
+    999
+  );
+  
+  // Get recent notification logs
+  const logs = await prisma.notificationLog.findMany({
+    orderBy: { sent_at: 'desc' },
+    take: 5
+  });
+  
+  res.json({
+    success: true,
+    data: {
+      emailSent: success,
+      testEmail,
+      recentLogs: logs
+    }
+  });
+}));
+
+/**
+ * GET /api/requests/notification-logs - Get notification logs
+ * קבלת יומני התראות
+ */
+router.get('/notification-logs', asyncHandler(async (req, res) => {
+  const logs = await prisma.notificationLog.findMany({
+    orderBy: { sent_at: 'desc' },
+    take: 20
+  });
+  
+  res.json({
+    success: true,
+    data: logs
+  });
+}));
+
+/**
+ * GET /api/requests - Get all tech requests
+ * קבלת כל בקשות העזרה הטכנית
+ */
 router.get('/', asyncHandler(async (req, res) => {
   const { status, urgency_level, page = 1, limit = 10 } = req.query;
   
