@@ -1,0 +1,354 @@
+import React, { useState, useEffect } from 'react';
+import { Eye, Trash2, Phone, MapPin, Clock, AlertCircle, Filter } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Select } from '../../components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { TechRequest, STATUS_LABELS, URGENCY_LABELS } from '../../types';
+import { adminAPI, requestsAPI } from '../../services/api';
+import { formatDateTime, formatPhoneNumber, getErrorMessage } from '../../lib/utils';
+
+const ManageRequests: React.FC = () => {
+  const [requests, setRequests] = useState<TechRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedRequest, setSelectedRequest] = useState<TechRequest | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [filters, setFilters] = useState({
+    status: '',
+    urgency_level: '',
+    search: ''
+  });
+
+  useEffect(() => {
+    loadRequests();
+  }, [filters]);
+
+  const loadRequests = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const params = {
+        ...filters,
+        page: 1,
+        limit: 50
+      };
+      const result = await adminAPI.getRequests(params);
+      setRequests(result || []);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusUpdate = async (requestId: number, newStatus: TechRequest['status']) => {
+    try {
+      await requestsAPI.update(requestId, { status: newStatus });
+      await loadRequests();
+      setSelectedRequest(null);
+      setShowDetails(false);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
+  const handleDeleteRequest = async (requestId: number) => {
+    if (!window.confirm('האם אתה בטוח שברצונך למחוק את הבקשה?')) {
+      return;
+    }
+
+    try {
+      await requestsAPI.delete(requestId);
+      await loadRequests();
+      setSelectedRequest(null);
+      setShowDetails(false);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
+  const getStatusBadgeClass = (status: TechRequest['status']) => {
+    const baseClass = "px-2 py-1 rounded-full text-xs font-medium border";
+    switch (status) {
+      case 'pending': return `${baseClass} status-pending`;
+      case 'scheduled': return `${baseClass} status-scheduled`;
+      case 'in_progress': return `${baseClass} status-in_progress`;
+      case 'completed': return `${baseClass} status-completed`;
+      case 'cancelled': return `${baseClass} status-cancelled`;
+      default: return baseClass;
+    }
+  };
+
+  const getUrgencyBadgeClass = (urgency: TechRequest['urgency_level']) => {
+    const baseClass = "px-2 py-1 rounded-full text-xs font-medium border";
+    switch (urgency) {
+      case 'low': return `${baseClass} urgency-low`;
+      case 'medium': return `${baseClass} urgency-medium`;
+      case 'high': return `${baseClass} urgency-high`;
+      case 'urgent': return `${baseClass} urgency-urgent`;
+      default: return baseClass;
+    }
+  };
+
+  const RequestDetailsModal = ({ request }: { request: TechRequest }) => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>פרטי בקשה #{request.id}</span>
+            <Button variant="ghost" size="sm" onClick={() => setShowDetails(false)}>
+              ×
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Personal Info */}
+          <div className="space-y-3">
+            <h3 className="font-medium">פרטים אישיים</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium">שם:</span> {request.full_name}
+              </div>
+              <div className="flex items-center space-x-reverse space-x-2">
+                <Phone className="w-4 h-4" />
+                <span className="font-medium">טלפון:</span>
+                <a href={`tel:${request.phone}`} className="text-blue-600 hover:underline">
+                  {formatPhoneNumber(request.phone)}
+                </a>
+              </div>
+              <div className="md:col-span-2 flex items-start space-x-reverse space-x-2">
+                <MapPin className="w-4 h-4 mt-1" />
+                <span className="font-medium">כתובת:</span>
+                <span>{request.address}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Status and Priority */}
+          <div className="space-y-3">
+            <h3 className="font-medium">סטטוס ודחיפות</h3>
+            <div className="flex items-center space-x-reverse space-x-4">
+              <div className="flex items-center space-x-reverse space-x-2">
+                <span className="font-medium">סטטוס:</span>
+                <span className={getStatusBadgeClass(request.status)}>
+                  {STATUS_LABELS[request.status]}
+                </span>
+              </div>
+              <div className="flex items-center space-x-reverse space-x-2">
+                <span className="font-medium">דחיפות:</span>
+                <span className={getUrgencyBadgeClass(request.urgency_level)}>
+                  {URGENCY_LABELS[request.urgency_level]}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Problem Description */}
+          <div className="space-y-3">
+            <h3 className="font-medium">תיאור הבעיה</h3>
+            <p className="text-sm bg-gray-50 p-3 rounded border">
+              {request.problem_description}
+            </p>
+          </div>
+
+          {/* Schedule Info */}
+          {request.scheduled_date && request.scheduled_time && (
+            <div className="space-y-3">
+              <h3 className="font-medium">זמן מתוכנן</h3>
+              <div className="flex items-center space-x-reverse space-x-2 text-sm">
+                <Clock className="w-4 h-4" />
+                <span>{request.scheduled_date} בשעה {request.scheduled_time}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Notes */}
+          {request.notes && (
+            <div className="space-y-3">
+              <h3 className="font-medium">הערות</h3>
+              <p className="text-sm bg-gray-50 p-3 rounded border">
+                {request.notes}
+              </p>
+            </div>
+          )}
+
+          {/* Timestamps */}
+          <div className="space-y-3 text-sm text-gray-600">
+            <div>נוצר: {formatDateTime(request.created_at)}</div>
+            <div>עודכן: {formatDateTime(request.updated_at)}</div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2 pt-4 border-t">
+            <Select
+              value={request.status}
+              onChange={(e) => handleStatusUpdate(request.id, e.target.value as TechRequest['status'])}
+              className="flex-1 min-w-[150px]"
+            >
+              <option value="pending">{STATUS_LABELS.pending}</option>
+              <option value="scheduled">{STATUS_LABELS.scheduled}</option>
+              <option value="in_progress">{STATUS_LABELS.in_progress}</option>
+              <option value="completed">{STATUS_LABELS.completed}</option>
+              <option value="cancelled">{STATUS_LABELS.cancelled}</option>
+            </Select>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => handleDeleteRequest(request.id)}
+            >
+              <Trash2 className="w-4 h-4 ml-1" />
+              מחק
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  return (
+    <div className="max-w-7xl mx-auto py-8 px-4">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">ניהול בקשות עזרה</h1>
+        <p className="text-gray-600">
+          כאן תוכל לנהל את כל בקשות העזרה הטכנית שהתקבלו
+        </p>
+      </div>
+
+      {/* Filters */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-reverse space-x-2">
+            <Filter className="w-5 h-5" />
+            <span>סינון וחיפוש</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">סטטוס</label>
+              <Select
+                value={filters.status}
+                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+              >
+                <option value="">כל הסטטוסים</option>
+                <option value="pending">{STATUS_LABELS.pending}</option>
+                <option value="scheduled">{STATUS_LABELS.scheduled}</option>
+                <option value="in_progress">{STATUS_LABELS.in_progress}</option>
+                <option value="completed">{STATUS_LABELS.completed}</option>
+                <option value="cancelled">{STATUS_LABELS.cancelled}</option>
+              </Select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">דחיפות</label>
+              <Select
+                value={filters.urgency_level}
+                onChange={(e) => setFilters({ ...filters, urgency_level: e.target.value })}
+              >
+                <option value="">כל הרמות</option>
+                <option value="low">{URGENCY_LABELS.low}</option>
+                <option value="medium">{URGENCY_LABELS.medium}</option>
+                <option value="high">{URGENCY_LABELS.high}</option>
+                <option value="urgent">{URGENCY_LABELS.urgent}</option>
+              </Select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">חיפוש</label>
+              <Input
+                placeholder="חפש לפי שם, טלפון או תיאור..."
+                value={filters.search}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Error Display */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-reverse space-x-2 text-red-700">
+          <AlertCircle className="w-5 h-5" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Requests List */}
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full mx-auto"></div>
+          <p className="mt-4 text-gray-600">טוען בקשות...</p>
+        </div>
+      ) : requests.length === 0 ? (
+        <Card>
+          <CardContent className="text-center py-12">
+            <p className="text-gray-600">לא נמצאו בקשות המתאימות לקריטריונים</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {requests.map((request) => (
+            <Card key={request.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center space-x-reverse space-x-4">
+                      <h3 className="font-medium text-lg">
+                        בקשה #{request.id} - {request.full_name}
+                      </h3>
+                      <div className="flex space-x-reverse space-x-2">
+                        <span className={getStatusBadgeClass(request.status)}>
+                          {STATUS_LABELS[request.status]}
+                        </span>
+                        <span className={getUrgencyBadgeClass(request.urgency_level)}>
+                          {URGENCY_LABELS[request.urgency_level]}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                      <div className="flex items-center space-x-reverse space-x-2">
+                        <Phone className="w-4 h-4" />
+                        <a href={`tel:${request.phone}`} className="hover:text-blue-600">
+                          {formatPhoneNumber(request.phone)}
+                        </a>
+                      </div>
+                      <div className="flex items-center space-x-reverse space-x-2">
+                        <Clock className="w-4 h-4" />
+                        <span>{formatDateTime(request.created_at)}</span>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-gray-700 line-clamp-2">
+                      {request.problem_description}
+                    </p>
+                  </div>
+
+                  <div className="flex space-x-reverse space-x-2 mr-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedRequest(request);
+                        setShowDetails(true);
+                      }}
+                    >
+                      <Eye className="w-4 h-4 ml-1" />
+                      צפה
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Request Details Modal */}
+      {showDetails && selectedRequest && (
+        <RequestDetailsModal request={selectedRequest} />
+      )}
+    </div>
+  );
+};
+
+export default ManageRequests;
