@@ -8,6 +8,8 @@ import {
   CreateSlotForm,
   LoginForm,
   UpdateRequestForm,
+  AdminRequestUpdateForm,
+  TakeRequestForm,
   ApiResponse,
   PaginatedResponse,
   DashboardStats
@@ -186,6 +188,14 @@ export const adminAPI = {
   
   getAdmins: () =>
     apiCall(() => api.get<ApiResponse<AdminUser[]>>('/admin/admins')),
+
+  // Admin request field editing
+  updateRequestAsAdmin: (id: number, data: AdminRequestUpdateForm) =>
+    apiCall(() => api.put<ApiResponse<TechRequest>>(`/admin/requests/${id}`, data)),
+
+  // Admin takes a request (assigns themselves)
+  takeRequest: (id: number, data?: TakeRequestForm) =>
+    apiCall(() => api.post<ApiResponse<TechRequest>>(`/admin/requests/${id}/take`, data || {})),
 };
 
 export default api;

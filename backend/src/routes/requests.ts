@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../server';
 import { validateBody, schemas } from '../middleware/validation';
 import { asyncHandler } from '../middleware/errorHandler';
+import { emailService } from '../services/emailService';
 
 const router = express.Router();
 
@@ -104,6 +105,10 @@ router.put('/:id', validateBody(schemas.updateRequestStatus), asyncHandler(async
     });
   }
 
+  // Store previous status for email logic
+  const previousStatus = existingRequest.status;
+  const currentStatus = req.body.status || previousStatus;
+
   const updatedRequest = await prisma.techRequest.update({
     where: { id: requestId },
     data: req.body,
@@ -111,6 +116,23 @@ router.put('/:id', validateBody(schemas.updateRequestStatus), asyncHandler(async
       booked_slot: true
     }
   });
+
+  // Send approval email if status changed from "pending" to "scheduled"
+  if (previousStatus === 'pending' && currentStatus === 'scheduled') {
+    if (updatedRequest.scheduled_date && updatedRequest.scheduled_time) {
+      // Try to extract email from phone or use a placeholder
+      // In a real implementation, you'd want to have an email field in the request
+      const recipientEmail = `${updatedRequest.phone}@placeholder.com`; // This is just for logging
+      
+      await emailService.sendApprovalEmail(
+        recipientEmail,
+        updatedRequest.full_name,
+        updatedRequest.scheduled_date,
+        updatedRequest.scheduled_time,
+        updatedRequest.id
+      );
+    }
+  }
 
   res.json({
     success: true,

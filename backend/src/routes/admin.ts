@@ -3,6 +3,8 @@ import * as bcrypt from 'bcryptjs';
 import { prisma } from '../server';
 import { requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
+import { validateBody, schemas } from '../middleware/validation';
+import { emailService } from '../services/emailService';
 
 const router = express.Router();
 
@@ -126,7 +128,15 @@ router.get('/requests', asyncHandler(async (req, res) => {
       skip,
       take: Number(limit),
       include: {
-        booked_slot: true
+        booked_slot: true,
+        assigned_admin: {
+          select: {
+            id: true,
+            username: true,
+            created_at: true,
+            updated_at: true
+          }
+        }
       }
     }),
     prisma.techRequest.count({ where })
@@ -291,6 +301,180 @@ router.get('/admins', asyncHandler(async (req, res) => {
     success: true,
     data: admins
   });
+}));
+
+/**
+ * PUT /api/admin/requests/:id - Update a request (all fields allowed for admin)
+ * עדכון בקשה (כל השדות מותרים למנהל)
+ */
+router.put('/requests/:id', validateBody(schemas.adminRequestUpdate), asyncHandler(async (req, res) => {
+  const requestId = parseInt(req.params.id);
+  const updateData = req.body;
+  
+  if (isNaN(requestId)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid request ID',
+      message: 'מזהה בקשה לא תקין'
+    });
+  }
+
+  // Check if request exists
+  const existingRequest = await prisma.techRequest.findUnique({
+    where: { id: requestId }
+  });
+
+  if (!existingRequest) {
+    return res.status(404).json({
+      success: false,
+      error: 'Request not found',
+      message: 'בקשה לא נמצאה'
+    });
+  }
+
+  // Store previous status for email logic
+  const previousStatus = existingRequest.status;
+  const currentStatus = updateData.status || previousStatus;
+
+  try {
+    // Update the request
+    const updatedRequest = await prisma.techRequest.update({
+      where: { id: requestId },
+      data: updateData,
+      include: {
+        booked_slot: true,
+        assigned_admin: {
+          select: {
+            id: true,
+            username: true,
+            created_at: true,
+            updated_at: true
+          }
+        }
+      }
+    });
+
+    // Send approval email if status changed from "pending" to "scheduled"
+    if (previousStatus === 'pending' && currentStatus === 'scheduled') {
+      if (updatedRequest.scheduled_date && updatedRequest.scheduled_time) {
+        // Try to extract email from phone or use a placeholder
+        // In a real implementation, you'd want to have an email field in the request
+        const recipientEmail = `${updatedRequest.phone}@placeholder.com`; // This is just for logging
+        
+        await emailService.sendApprovalEmail(
+          recipientEmail,
+          updatedRequest.full_name,
+          updatedRequest.scheduled_date,
+          updatedRequest.scheduled_time,
+          updatedRequest.id
+        );
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'בקשה עודכנה בהצלחה',
+      data: updatedRequest
+    });
+  } catch (error) {
+    console.error('Error updating request:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update request',
+      message: 'שגיאה בעדכון הבקשה'
+    });
+  }
+}));
+
+/**
+ * POST /api/admin/requests/:id/take - Admin "takes" a request (assigns themselves)
+ * מנהל "לוקח" בקשה (מקצה את עצמו אליה)
+ */
+router.post('/requests/:id/take', validateBody(schemas.adminTakeRequest), asyncHandler(async (req, res) => {
+  const requestId = parseInt(req.params.id);
+  const { notes } = req.body;
+  
+  if (isNaN(requestId)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid request ID',
+      message: 'מזהה בקשה לא תקין'
+    });
+  }
+
+  // Get admin ID from session (stored as userId during login)
+  const adminId = req.session.userId;
+  
+  if (!adminId) {
+    return res.status(401).json({
+      success: false,
+      error: 'Admin ID not found in session',
+      message: 'מזהה מנהל לא נמצא בסשן'
+    });
+  }
+
+  // Check if request exists
+  const existingRequest = await prisma.techRequest.findUnique({
+    where: { id: requestId }
+  });
+
+  if (!existingRequest) {
+    return res.status(404).json({
+      success: false,
+      error: 'Request not found',
+      message: 'בקשה לא נמצאה'
+    });
+  }
+
+  // Check if request is already assigned (using type assertion for now)
+  if ((existingRequest as any).assigned_admin_id) {
+    return res.status(400).json({
+      success: false,
+      error: 'Request already assigned',
+      message: 'בקשה כבר מוקצית למנהל אחר'
+    });
+  }
+
+  try {
+    // Update request to assign current admin
+    const updateData: any = {
+      assigned_admin_id: adminId
+    };
+    
+    // Add notes if provided
+    if (notes) {
+      updateData.notes = notes;
+    }
+
+    const updatedRequest = await prisma.techRequest.update({
+      where: { id: requestId },
+      data: updateData,
+      include: {
+        booked_slot: true,
+        assigned_admin: {
+          select: {
+            id: true,
+            username: true,
+            created_at: true,
+            updated_at: true
+          }
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'בקשה נלקחה בהצלחה',
+      data: updatedRequest
+    });
+  } catch (error) {
+    console.error('Error taking request:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to take request',
+      message: 'שגיאה בלקיחת הבקשה'
+    });
+  }
 }));
 
 export default router;

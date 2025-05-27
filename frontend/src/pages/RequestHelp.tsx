@@ -148,7 +148,7 @@ const RequestHelp: React.FC = () => {
           <CardContent className="space-y-4">
             {selectedSlot && (
               <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="font-medium mb-2">פרטי התור שנקבע:</h3>
+                <h3 className="font-medium mb-2">זמני הבקשה שנבחרו:</h3>
                 <p className="text-sm text-gray-600">
                   {formatDate(selectedSlot.date)} בשעה {selectedSlot.start_time}-{selectedSlot.end_time}
                 </p>
@@ -156,10 +156,6 @@ const RequestHelp: React.FC = () => {
             )}
             <div className="text-sm text-gray-600">
               <p>מתנדב יקבל את הבקשה ויצור איתך קשר לתיאום פרטים נוספים.</p>
-              <p className="mt-2">
-                <Phone className="inline w-4 h-4 ml-1" />
-                לפניות דחופות: 050-123-4567
-              </p>
             </div>
           </CardContent>
         </Card>

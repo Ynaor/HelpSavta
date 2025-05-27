@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Eye, Trash2, Phone, MapPin, Clock, AlertCircle, Filter } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Eye, Trash2, Phone, MapPin, Clock, AlertCircle, Filter, Edit2, Save, X, UserCheck, User } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Select } from '../../components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { TechRequest, STATUS_LABELS, URGENCY_LABELS } from '../../types';
+import { Textarea } from '../../components/ui/textarea';
+import { TechRequest, STATUS_LABELS, URGENCY_LABELS, AdminRequestUpdateForm } from '../../types';
 import { adminAPI, requestsAPI } from '../../services/api';
 import { formatDateTime, formatPhoneNumber, getErrorMessage } from '../../lib/utils';
 
@@ -12,8 +13,13 @@ const ManageRequests: React.FC = () => {
   const [requests, setRequests] = useState<TechRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<TechRequest | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editingRequestId, setEditingRequestId] = useState<number | null>(null);
+  const [editFormData, setEditFormData] = useState<AdminRequestUpdateForm>({});
+  const [takeRequestLoading, setTakeRequestLoading] = useState<number | null>(null);
   const [filters, setFilters] = useState({
     status: '',
     urgency_level: '',
@@ -28,6 +34,7 @@ const ManageRequests: React.FC = () => {
     try {
       setLoading(true);
       setError('');
+      setSuccess('');
       const params = {
         ...filters,
         page: 1,
@@ -78,9 +85,174 @@ const ManageRequests: React.FC = () => {
       await loadRequests();
       setSelectedRequest(null);
       setShowDetails(false);
+      setSuccess('בקשה נמחקה בהצלחה');
     } catch (err) {
       setError(getErrorMessage(err));
     }
+  };
+
+  const handleTakeRequest = async (requestId: number) => {
+    if (!window.confirm('האם אתה בטוח שברצונך לקחת את הבקשה?')) {
+      return;
+    }
+
+    try {
+      setTakeRequestLoading(requestId);
+      await adminAPI.takeRequest(requestId);
+      await loadRequests();
+      setSuccess('בקשה נלקחה בהצלחה');
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setTakeRequestLoading(null);
+    }
+  };
+
+  const handleStartEdit = useCallback((requestId: number, field: string, currentValue: any) => {
+    setEditingRequestId(requestId);
+    setEditingField(field);
+    setEditFormData({ [field]: currentValue });
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingRequestId(null);
+    setEditingField(null);
+    setEditFormData({});
+  }, []);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editingRequestId || !editingField) return;
+
+    try {
+      const updatedRequest = await adminAPI.updateRequestAsAdmin(editingRequestId, editFormData);
+      
+      // Update local state with the response data instead of reloading all requests
+      setRequests(prevRequests =>
+        prevRequests.map(req =>
+          req.id === editingRequestId ? { ...req, ...updatedRequest } : req
+        )
+      );
+      
+      // Update selectedRequest if it's the one being edited
+      if (selectedRequest && selectedRequest.id === editingRequestId) {
+        setSelectedRequest({ ...selectedRequest, ...updatedRequest });
+      }
+      
+      handleCancelEdit();
+      setSuccess('שדה עודכן בהצלחה');
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }, [editingRequestId, editingField, editFormData, handleCancelEdit, selectedRequest]);
+
+  const handleFieldChange = useCallback((field: keyof AdminRequestUpdateForm, value: string) => {
+    setEditFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const renderEditableField = (request: TechRequest, field: keyof AdminRequestUpdateForm, label: string, type: 'text' | 'textarea' | 'select' = 'text') => {
+    const isEditing = editingRequestId === request.id && editingField === field;
+    const value = request[field as keyof TechRequest] as string;
+
+    if (isEditing) {
+      const inputKey = `${request.id}-${field}`;
+      
+      if (type === 'textarea') {
+        const currentValue = (editFormData[field] as string) || '';
+        
+        return (
+          <div className="flex items-start space-x-reverse space-x-2">
+            <textarea
+              key={inputKey}
+              value={currentValue}
+              onChange={(e) => handleFieldChange(field, e.target.value)}
+              className="flex-1 min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              rows={3}
+              autoFocus
+              style={{ unicodeBidi: 'plaintext' }}
+            />
+            <div className="flex space-x-reverse space-x-1">
+              <Button size="sm" onClick={handleSaveEdit}>
+                <Save className="w-4 h-4" />
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        );
+      } else if (type === 'select' && field === 'urgency_level') {
+        return (
+          <div className="flex items-center space-x-reverse space-x-2">
+            <Select
+              key={inputKey}
+              value={(editFormData[field] as string) || ''}
+              onChange={(e) => handleFieldChange(field, e.target.value)}
+              className="flex-1"
+            >
+              <option value="low">{URGENCY_LABELS.low}</option>
+              <option value="medium">{URGENCY_LABELS.medium}</option>
+              <option value="high">{URGENCY_LABELS.high}</option>
+              <option value="urgent">{URGENCY_LABELS.urgent}</option>
+            </Select>
+            <div className="flex space-x-reverse space-x-1">
+              <Button size="sm" onClick={handleSaveEdit}>
+                <Save className="w-4 h-4" />
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        );
+      } else {
+        const currentValue = (editFormData[field] as string) || '';
+        
+        return (
+          <div className="flex items-center space-x-reverse space-x-2">
+            <input
+              key={inputKey}
+              type="text"
+              value={currentValue}
+              onChange={(e) => handleFieldChange(field, e.target.value)}
+              className="flex-1 h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              autoFocus
+              style={{ unicodeBidi: 'plaintext' }}
+            />
+            <div className="flex space-x-reverse space-x-1">
+              <Button size="sm" onClick={handleSaveEdit}>
+                <Save className="w-4 h-4" />
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        );
+      }
+    }
+
+    return (
+      <div className="flex items-start justify-between group">
+        <div className="flex-1">
+          <span className="font-medium">{label}:</span>{' '}
+          {field === 'urgency_level' ? (
+            <span className={getUrgencyBadgeClass(value as TechRequest['urgency_level'])}>
+              {URGENCY_LABELS[value as TechRequest['urgency_level']]}
+            </span>
+          ) : (
+            <span>{value || 'לא צוין'}</span>
+          )}
+        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={() => handleStartEdit(request.id, field, value)}
+        >
+          <Edit2 className="w-4 h-4" />
+        </Button>
+      </div>
+    );
   };
 
   const getStatusBadgeClass = (status: TechRequest['status']) => {
@@ -118,24 +290,50 @@ const ManageRequests: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Assignment Info */}
+          <div className="space-y-3">
+            <h3 className="font-medium">הקצאה</h3>
+            <div className="flex items-center space-x-reverse space-x-2">
+              {request.assigned_admin ? (
+                <div className="flex items-center space-x-reverse space-x-2 text-green-700 bg-green-50 px-3 py-2 rounded">
+                  <UserCheck className="w-4 h-4" />
+                  <span>מוקצה למנהל: {request.assigned_admin.username}</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center space-x-reverse space-x-2 text-orange-700 bg-orange-50 px-3 py-2 rounded">
+                    <User className="w-4 h-4" />
+                    <span>לא מוקצה</span>
+                  </div>
+                  <Button
+                    onClick={() => handleTakeRequest(request.id)}
+                    disabled={takeRequestLoading === request.id}
+                    size="sm"
+                  >
+                    {takeRequestLoading === request.id ? (
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                    ) : (
+                      <UserCheck className="w-4 h-4 ml-1" />
+                    )}
+                    {takeRequestLoading === request.id ? 'לוקח...' : 'קח בקשה'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Personal Info */}
           <div className="space-y-3">
             <h3 className="font-medium">פרטים אישיים</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="font-medium">שם:</span> {request.full_name}
-              </div>
+            <div className="space-y-3">
+              {renderEditableField(request, 'full_name', 'שם')}
               <div className="flex items-center space-x-reverse space-x-2">
                 <Phone className="w-4 h-4" />
-                <span className="font-medium">טלפון:</span>
-                <a href={`tel:${request.phone}`} className="text-blue-600 hover:underline">
-                  {formatPhoneNumber(request.phone)}
-                </a>
+                {renderEditableField(request, 'phone', 'טלפון')}
               </div>
-              <div className="md:col-span-2 flex items-start space-x-reverse space-x-2">
+              <div className="flex items-start space-x-reverse space-x-2">
                 <MapPin className="w-4 h-4 mt-1" />
-                <span className="font-medium">כתובת:</span>
-                <span>{request.address}</span>
+                {renderEditableField(request, 'address', 'כתובת')}
               </div>
             </div>
           </div>
@@ -143,28 +341,21 @@ const ManageRequests: React.FC = () => {
           {/* Status and Priority */}
           <div className="space-y-3">
             <h3 className="font-medium">סטטוס ודחיפות</h3>
-            <div className="flex items-center space-x-reverse space-x-4">
+            <div className="space-y-3">
               <div className="flex items-center space-x-reverse space-x-2">
                 <span className="font-medium">סטטוס:</span>
                 <span className={getStatusBadgeClass(request.status)}>
                   {STATUS_LABELS[request.status]}
                 </span>
               </div>
-              <div className="flex items-center space-x-reverse space-x-2">
-                <span className="font-medium">דחיפות:</span>
-                <span className={getUrgencyBadgeClass(request.urgency_level)}>
-                  {URGENCY_LABELS[request.urgency_level]}
-                </span>
-              </div>
+              {renderEditableField(request, 'urgency_level', 'דחיפות', 'select')}
             </div>
           </div>
 
           {/* Problem Description */}
           <div className="space-y-3">
             <h3 className="font-medium">תיאור הבעיה</h3>
-            <p className="text-sm bg-gray-50 p-3 rounded border">
-              {request.problem_description}
-            </p>
+            {renderEditableField(request, 'problem_description', 'תיאור הבעיה', 'textarea')}
           </div>
 
           {/* Schedule Info */}
@@ -179,14 +370,10 @@ const ManageRequests: React.FC = () => {
           )}
 
           {/* Notes */}
-          {request.notes && (
-            <div className="space-y-3">
-              <h3 className="font-medium">הערות</h3>
-              <p className="text-sm bg-gray-50 p-3 rounded border">
-                {request.notes}
-              </p>
-            </div>
-          )}
+          <div className="space-y-3">
+            <h3 className="font-medium">הערות</h3>
+            {renderEditableField(request, 'notes', 'הערות', 'textarea')}
+          </div>
 
           {/* Timestamps */}
           <div className="space-y-3 text-sm text-gray-600">
@@ -269,10 +456,13 @@ const ManageRequests: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">חיפוש</label>
-              <Input
+              <input
+                type="text"
                 placeholder="חפש לפי שם, טלפון או תיאור..."
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                style={{ unicodeBidi: 'plaintext' }}
               />
             </div>
           </div>
@@ -284,6 +474,14 @@ const ManageRequests: React.FC = () => {
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-reverse space-x-2 text-red-700">
           <AlertCircle className="w-5 h-5" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {/* Success Display */}
+      {success && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center space-x-reverse space-x-2 text-green-700">
+          <UserCheck className="w-5 h-5" />
+          <span>{success}</span>
         </div>
       )}
 
@@ -320,7 +518,7 @@ const ManageRequests: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                       <div className="flex items-center space-x-reverse space-x-2">
                         <Phone className="w-4 h-4" />
                         <a href={`tel:${request.phone}`} className="hover:text-blue-600">
@@ -331,6 +529,19 @@ const ManageRequests: React.FC = () => {
                         <Clock className="w-4 h-4" />
                         <span>{formatDateTime(request.created_at)}</span>
                       </div>
+                      <div className="flex items-center space-x-reverse space-x-2">
+                        {request.assigned_admin ? (
+                          <div className="flex items-center space-x-reverse space-x-1 text-green-600">
+                            <UserCheck className="w-4 h-4" />
+                            <span>מוקצה ל: {request.assigned_admin.username}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-reverse space-x-1 text-orange-600">
+                            <User className="w-4 h-4" />
+                            <span>לא מוקצה</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <p className="text-sm text-gray-700 line-clamp-2">
@@ -338,7 +549,7 @@ const ManageRequests: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="flex space-x-reverse space-x-2 mr-4">
+                  <div className="flex flex-col space-y-2 mr-4">
                     <Button
                       variant="outline"
                       size="sm"
@@ -350,6 +561,21 @@ const ManageRequests: React.FC = () => {
                       <Eye className="w-4 h-4 ml-1" />
                       צפה
                     </Button>
+                    {!request.assigned_admin && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleTakeRequest(request.id)}
+                        disabled={takeRequestLoading === request.id}
+                      >
+                        {takeRequestLoading === request.id ? (
+                          <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full ml-1" />
+                        ) : (
+                          <UserCheck className="w-4 h-4 ml-1" />
+                        )}
+                        {takeRequestLoading === request.id ? 'לוקח...' : 'קח בקשה'}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>

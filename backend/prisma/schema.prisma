@@ -22,12 +22,16 @@ model TechRequest {
   scheduled_time     String?   // שעת ביקור מתוכננת
   status             String    @default("pending") // סטטוס: pending, scheduled, in_progress, completed, cancelled
   notes              String?   // הערות נוספות
+  assigned_admin_id  Int?      // מזהה המנהל שמטפל בבקשה
   created_at         DateTime  @default(now())
   updated_at         DateTime  @updatedAt
   
   // Relation to booked slot
   booked_slot        AvailableSlot?  @relation(fields: [booked_slot_id], references: [id])
   booked_slot_id     Int?
+
+  // Relation to assigned admin
+  assigned_admin     AdminUser?      @relation(fields: [assigned_admin_id], references: [id])
 
   @@map("tech_requests")
 }
@@ -55,6 +59,9 @@ model AdminUser {
   password_hash String  // סיסמה מוצפנת
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
+
+  // Relation to assigned requests
+  assigned_requests TechRequest[]
 
   @@map("admin_users")
 }

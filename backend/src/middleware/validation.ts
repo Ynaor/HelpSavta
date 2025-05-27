@@ -109,5 +109,53 @@ export const schemas = {
     scheduled_time: Joi.string().pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional().messages({
       'string.pattern.base': 'שעה מתוכננת חייבת להיות בפורמט HH:MM'
     })
+  }),
+
+  // Admin request update validation - בדיקת עדכון בקשה על ידי מנהל
+  adminRequestUpdate: Joi.object({
+    full_name: Joi.string().min(2).max(100).optional().messages({
+      'string.min': 'שם חייב להכיל לפחות 2 תווים',
+      'string.max': 'שם חייב להכיל עד 100 תווים'
+    }),
+    phone: Joi.string().pattern(/^0[2-9]\d{7,8}$/).optional().messages({
+      'string.pattern.base': 'מספר טלפון לא תקין (צריך להתחיל ב-0 ולהכיל 9-10 ספרות)'
+    }),
+    address: Joi.string().min(5).max(200).optional().messages({
+      'string.min': 'כתובת חייבת להכיל לפחות 5 תווים',
+      'string.max': 'כתובת חייבת להכיל עד 200 תווים'
+    }),
+    problem_description: Joi.string().min(10).max(1000).optional().messages({
+      'string.min': 'תיאור הבעיה חייב להכיל לפחות 10 תווים',
+      'string.max': 'תיאור הבעיה חייב להכיל עד 1000 תווים'
+    }),
+    urgency_level: Joi.string().valid('low', 'medium', 'high', 'urgent').optional().messages({
+      'any.only': 'רמת דחיפות חייבת להיות: low, medium, high, או urgent'
+    }),
+    status: Joi.string().valid('pending', 'scheduled', 'in_progress', 'completed', 'cancelled').optional().messages({
+      'any.only': 'סטטוס חייב להיות: pending, scheduled, in_progress, completed, או cancelled'
+    }),
+    notes: Joi.string().max(500).optional().allow('').messages({
+      'string.max': 'הערות חייבות להכיל עד 500 תווים'
+    }),
+    scheduled_date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).optional().messages({
+      'string.pattern.base': 'תאריך מתוכנן חייב להיות בפורמט YYYY-MM-DD'
+    }),
+    scheduled_time: Joi.string().pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional().messages({
+      'string.pattern.base': 'שעה מתוכננת חייבת להיות בפורמט HH:MM'
+    }),
+    assigned_admin_id: Joi.number().integer().positive().optional().messages({
+      'number.base': 'מזהה מנהל חייב להיות מספר',
+      'number.integer': 'מזהה מנהל חייב להיות מספר שלם',
+      'number.positive': 'מזהה מנהל חייב להיות מספר חיובי'
+    })
+  }).min(1).messages({
+    'object.min': 'נדרש לפחות שדה אחד לעדכון'
+  }),
+
+  // Admin take request validation - בדיקת "לקיחת" בקשה על ידי מנהל
+  adminTakeRequest: Joi.object({
+    notes: Joi.string().max(500).optional().allow('').messages({
+      'string.max': 'הערות חייבות להכיל עד 500 תווים'
+    })
   })
 };

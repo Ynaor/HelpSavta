@@ -11,6 +11,8 @@ export interface TechRequest {
   scheduled_time?: string;
   status: 'pending' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
   notes?: string;
+  assigned_admin_id?: number;
+  assigned_admin?: AdminUser;
   created_at: string;
   updated_at: string;
   booked_slot?: AvailableSlot;
@@ -128,4 +130,22 @@ export const URGENCY_LABELS: Record<TechRequest['urgency_level'], string> = {
 export interface CreateAdminForm {
   username: string;
   password: string;
+}
+
+// Admin request update interface
+export interface AdminRequestUpdateForm {
+  full_name?: string;
+  phone?: string;
+  address?: string;
+  problem_description?: string;
+  urgency_level?: 'low' | 'medium' | 'high' | 'urgent';
+  scheduled_date?: string;
+  scheduled_time?: string;
+  status?: 'pending' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  notes?: string;
+}
+
+// Take request interface
+export interface TakeRequestForm {
+  notes?: string;
 }
