@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Eye, Trash2, Phone, MapPin, Clock, AlertCircle, Filter, Edit2, Save, X, UserCheck, User } from 'lucide-react';
+import { Eye, Trash2, Phone, MapPin, Clock, AlertCircle, Filter, UserCheck, User } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Select } from '../../components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Textarea } from '../../components/ui/textarea';
 import { TechRequest, STATUS_LABELS, URGENCY_LABELS, AdminRequestUpdateForm } from '../../types';
 import { adminAPI, requestsAPI } from '../../services/api';
 import { formatDateTime, formatPhoneNumber, getErrorMessage } from '../../lib/utils';
+import RequestDetailsModal from '../../components/requests/RequestDetailsModal';
 
 const ManageRequests: React.FC = () => {
   const [requests, setRequests] = useState<TechRequest[]>([]);
@@ -326,136 +326,6 @@ const ManageRequests: React.FC = () => {
     }
   };
 
-  const RequestDetailsModal = ({ request }: { request: TechRequest }) => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>פרטי בקשה #{request.id}</span>
-            <Button variant="ghost" size="sm" onClick={() => setShowDetails(false)}>
-              ×
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Assignment Info */}
-          <div className="space-y-3">
-            <h3 className="font-medium">הקצאה</h3>
-            <div className="flex items-center space-x-reverse space-x-2">
-              {request.assigned_admin ? (
-                <div className="flex items-center space-x-reverse space-x-2 text-green-700 bg-green-50 px-3 py-2 rounded">
-                  <UserCheck className="w-4 h-4" />
-                  <span>מוקצה למנהל: {request.assigned_admin.username}</span>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center space-x-reverse space-x-2 text-orange-700 bg-orange-50 px-3 py-2 rounded">
-                    <User className="w-4 h-4" />
-                    <span>לא מוקצה</span>
-                  </div>
-                  <Button
-                    onClick={() => handleTakeRequest(request.id)}
-                    disabled={takeRequestLoading === request.id}
-                    size="sm"
-                  >
-                    {takeRequestLoading === request.id ? (
-                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                    ) : (
-                      <UserCheck className="w-4 h-4 ml-1" />
-                    )}
-                    {takeRequestLoading === request.id ? 'לוקח...' : 'קח בקשה'}
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Personal Info */}
-          <div className="space-y-3">
-            <h3 className="font-medium">פרטים אישיים</h3>
-            <div className="space-y-3">
-              {renderEditableField(request, 'full_name', 'שם')}
-              <div className="flex items-center space-x-reverse space-x-2">
-                <Phone className="w-4 h-4" />
-                {renderEditableField(request, 'phone', 'טלפון')}
-              </div>
-              {renderEditableField(request, 'email', 'כתובת דוא"ל')}
-              <div className="flex items-start space-x-reverse space-x-2">
-                <MapPin className="w-4 h-4 mt-1" />
-                {renderEditableField(request, 'address', 'כתובת')}
-              </div>
-            </div>
-          </div>
-
-          {/* Status and Priority */}
-          <div className="space-y-3">
-            <h3 className="font-medium">סטטוס ודחיפות</h3>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-reverse space-x-2">
-                <span className="font-medium">סטטוס:</span>
-                <span className={getStatusBadgeClass(request.status)}>
-                  {STATUS_LABELS[request.status]}
-                </span>
-              </div>
-              {renderEditableField(request, 'urgency_level', 'דחיפות', 'select')}
-            </div>
-          </div>
-
-          {/* Problem Description */}
-          <div className="space-y-3">
-            <h3 className="font-medium">תיאור הבעיה</h3>
-            {renderEditableField(request, 'problem_description', 'תיאור הבעיה', 'textarea')}
-          </div>
-
-          {/* Schedule Info */}
-          {request.scheduled_date && request.scheduled_time && (
-            <div className="space-y-3">
-              <h3 className="font-medium">זמן מתוכנן</h3>
-              <div className="flex items-center space-x-reverse space-x-2 text-sm">
-                <Clock className="w-4 h-4" />
-                <span>{request.scheduled_date} בשעה {request.scheduled_time}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Notes */}
-          <div className="space-y-3">
-            <h3 className="font-medium">הערות</h3>
-            {renderEditableField(request, 'notes', 'הערות', 'textarea')}
-          </div>
-
-          {/* Timestamps */}
-          <div className="space-y-3 text-sm text-gray-600">
-            <div>נוצר: {formatDateTime(request.created_at)}</div>
-            <div>עודכן: {formatDateTime(request.updated_at)}</div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-wrap gap-2 pt-4 border-t">
-            <Select
-              value={request.status}
-              onChange={(e) => handleStatusUpdate(request.id, e.target.value as TechRequest['status'])}
-              className="flex-1 min-w-[150px]"
-            >
-              <option value="pending">{STATUS_LABELS.pending}</option>
-              <option value="in_progress">{STATUS_LABELS.in_progress}</option>
-              <option value="completed">{STATUS_LABELS.completed}</option>
-              <option value="cancelled">{STATUS_LABELS.cancelled}</option>
-            </Select>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => handleDeleteRequest(request.id)}
-            >
-              <Trash2 className="w-4 h-4 ml-1" />
-              מחק
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
   return (
     <div className="max-w-7xl mx-auto py-8 px-4">
       <div className="mb-8">
@@ -639,7 +509,12 @@ const ManageRequests: React.FC = () => {
 
       {/* Request Details Modal */}
       {showDetails && selectedRequest && (
-        <RequestDetailsModal request={selectedRequest} />
+        <RequestDetailsModal 
+          request={selectedRequest}
+          onClose={() => setShowDetails(false)}
+          onUpdate={loadRequests}
+          showTakeRequestButton={true}
+        />
       )}
     </div>
   );
