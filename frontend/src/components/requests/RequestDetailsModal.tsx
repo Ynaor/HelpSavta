@@ -32,6 +32,7 @@ const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({
   const editingInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
   const cursorPositionRef = useRef<number>(0);
 
+
   const handleStatusUpdate = async (requestId: number, newStatus: TechRequest['status']) => {
     try {
       await requestsAPI.update(requestId, { status: newStatus });
@@ -58,6 +59,28 @@ const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({
     setError('');
     setSuccess('');
   }, []);
+
+  // ESC key handler to close modal
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        // If currently editing a field, cancel edit instead of closing modal
+        if (editingField) {
+          handleCancelEdit();
+        } else {
+          onClose();
+        }
+      }
+    };
+
+    // Add event listener when modal opens
+    document.addEventListener('keydown', handleEscapeKey);
+
+    // Cleanup event listener when modal closes
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [editingField, handleCancelEdit, onClose]);
 
   const handleSaveEdit = useCallback(async () => {
     if (!editingRequestId || !editingField) return;

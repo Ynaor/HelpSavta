@@ -87,50 +87,6 @@ async function main() {
     }
   }
 
-  // Create sample tech requests with email addresses
-  const sampleRequests = [
-    {
-      full_name: "רחל כהן",
-      phone: "02-5551234",
-      email: "rachel.cohen@gmail.com",
-      address: "רחוב הרצל 15, ירושלים",
-      problem_description: "המחשב לא נדלק בכלל. לחצתי על הכפתור אבל שום דבר לא קורה.",
-      urgency_level: "high"
-    },
-    {
-      full_name: "משה לוי",
-      phone: "03-5555678",
-      email: "moshe.levi@walla.co.il",
-      address: "שדרות ללא 32, תל אביב",
-      problem_description: "הטלפון החכם שלי לא מתחבר לאינטרנט. צריך עזרה עם ה-WiFi.",
-      urgency_level: "medium"
-    },
-    {
-      full_name: "שרה גולדברג",
-      phone: "04-5559876",
-      email: "sarah.goldberg@hotmail.com",
-      address: "רחוב הגליל 8, חיפה",
-      problem_description: "אני לא יודעת איך להדפיס מהמחשב. המדפסת מחוברת אבל לא עובדת.",
-      urgency_level: "low"
-    }
-  ];
-
-  // Create sample requests if they don't exist
-  for (const requestData of sampleRequests) {
-    const existingRequest = await prisma.techRequest.findFirst({
-      where: {
-        full_name: requestData.full_name,
-        phone: requestData.phone
-      }
-    });
-
-    if (!existingRequest) {
-      await prisma.techRequest.create({
-        data: requestData
-      });
-      console.log(`✅ Created sample request for: ${requestData.full_name}`);
-    }
-  }
 
   console.log('🎉 Database seeding completed!');
 }
