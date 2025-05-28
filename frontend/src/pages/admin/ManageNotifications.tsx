@@ -176,7 +176,7 @@ const ManageNotifications: React.FC = () => {
       {/* Notifications List */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full mx-auto"></div>
+          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
           <p className="mt-4 text-gray-600">טוען הודעות...</p>
         </div>
       ) : notifications.length === 0 ? (
@@ -235,7 +235,7 @@ const ManageNotifications: React.FC = () => {
                       >
                         {resendingId === notification.id ? (
                           <div className="flex items-center space-x-reverse space-x-2">
-                            <div className="animate-spin w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full"></div>
+                            <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                             <span>שולח...</span>
                           </div>
                         ) : (

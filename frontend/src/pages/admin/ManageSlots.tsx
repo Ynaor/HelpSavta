@@ -298,7 +298,7 @@ const ManageSlots: React.FC = () => {
       {/* Slots List */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full mx-auto"></div>
+          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
           <p className="mt-4 text-gray-600">טוען זמנים זמינים...</p>
         </div>
       ) : slots.length === 0 ? (

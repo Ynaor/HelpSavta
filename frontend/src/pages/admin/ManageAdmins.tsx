@@ -260,7 +260,7 @@ const ManageAdmins: React.FC = () => {
         <CardContent>
           {loading ? (
             <div className="text-center py-12">
-              <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full mx-auto"></div>
+              <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
               <p className="mt-4 text-gray-600">טוען רשימת מנהלים...</p>
             </div>
           ) : admins.length === 0 ? (
@@ -381,23 +381,23 @@ const ManageAdmins: React.FC = () => {
         <CardContent>
           <div className="space-y-3 text-sm text-gray-700">
             <div className="flex items-start space-x-reverse space-x-2">
-              <span className="w-2 h-2 bg-orange-500 rounded-full mt-2"></span>
+              <span className="w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
               <span>כל מנהל חדש יוכל להתחבר למערכת עם שם המשתמש והסיסמה שהוגדרו</span>
             </div>
             <div className="flex items-start space-x-reverse space-x-2">
-              <span className="w-2 h-2 bg-orange-500 rounded-full mt-2"></span>
+              <span className="w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
               <span>יש לוודא שהסיסמה חזקה ומכילה אות גדולה, אות קטנה וספרה</span>
             </div>
             <div className="flex items-start space-x-reverse space-x-2">
-              <span className="w-2 h-2 bg-orange-500 rounded-full mt-2"></span>
+              <span className="w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
               <span>מנהלים יכולים לגשת לכל הפונקציות של מערכת הניהול</span>
             </div>
             <div className="flex items-start space-x-reverse space-x-2">
-              <span className="w-2 h-2 bg-orange-500 rounded-full mt-2"></span>
+              <span className="w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
               <span>רק מנהלי מערכת יכולים להשבית מנהלים אחרים (לא ניתן להשבית את עצמך)</span>
             </div>
             <div className="flex items-start space-x-reverse space-x-2">
-              <span className="w-2 h-2 bg-orange-500 rounded-full mt-2"></span>
+              <span className="w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
               <span>השבתת מנהל תמנע ממנו להתחבר למערכת אך לא תמחק את ההיסטוריה שלו</span>
             </div>
           </div>

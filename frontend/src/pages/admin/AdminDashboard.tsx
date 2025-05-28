@@ -48,7 +48,7 @@ const AdminDashboard: React.FC = () => {
     return (
       <div className="max-w-7xl mx-auto py-8 px-4">
         <div className="text-center py-12">
-          <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full mx-auto"></div>
+          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
           <p className="mt-4 text-gray-600">טוען נתוני לוח הבקרה...</p>
         </div>
       </div>
@@ -110,12 +110,12 @@ const AdminDashboard: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">בקשות ממתינות</p>
-                <p className="text-2xl font-bold text-orange-600">
+                <p className="text-2xl font-bold text-blue-600">
                   {stats.statistics.requests.pending}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                <Clock className="w-6 h-6 text-orange-600" />
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <Clock className="w-6 h-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
@@ -331,7 +331,7 @@ const AdminDashboard: React.FC = () => {
               onClick={() => navigate('/admin/notifications')}
             >
               <div className="flex items-center space-x-reverse space-x-3">
-                <AlertCircle className="w-5 h-5 text-orange-600" />
+                <AlertCircle className="w-5 h-5 text-blue-600" />
                 <div className="text-right">
                   <p className="font-medium">יומן הודעות</p>
                   <p className="text-sm text-gray-600">מעקב הודעות</p>

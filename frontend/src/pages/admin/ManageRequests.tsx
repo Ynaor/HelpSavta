@@ -160,7 +160,7 @@ const ManageRequests: React.FC = () => {
       {/* Requests List */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full mx-auto"></div>
+          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
           <p className="mt-4 text-gray-600">טוען בקשות...</p>
         </div>
       ) : requests.length === 0 ? (
@@ -214,7 +214,7 @@ const ManageRequests: React.FC = () => {
                             <span>מוקצה ל: {request.assigned_admin.username}</span>
                           </div>
                         ) : (
-                          <div className="flex items-center space-x-reverse space-x-1 text-orange-600">
+                          <div className="flex items-center space-x-reverse space-x-1 text-blue-600">
                             {/* <User className="w-4 h-4" /> */}
                             <span>לא מוקצה</span>
                           </div>

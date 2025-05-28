@@ -74,11 +74,11 @@ const AdminLayout: React.FC = () => {
   const SidebarContent = () => (
     <div className="h-full flex flex-col bg-white border-l border-gray-200">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-4 md:p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">פאנל ניהול</h2>
-            <p className="text-sm text-gray-600">HelpSavta Admin</p>
+            <h2 className="text-lg md:text-xl font-bold text-gray-900">פאנל ניהול</h2>
+            <p className="text-xs md:text-sm text-gray-600">HelpSavta Admin</p>
           </div>
           <Button
             variant="ghost"
@@ -104,18 +104,18 @@ const AdminLayout: React.FC = () => {
                 navigate(item.href);
                 setSidebarOpen(false);
               }}
-              className={`w-full flex items-center space-x-reverse space-x-3 p-3 rounded-lg text-right transition-colors ${
+              className={`w-full flex items-center space-x-reverse space-x-2 md:space-x-3 p-2 md:p-3 rounded-lg text-right transition-colors ${
                 isActive
-                  ? 'bg-orange-50 text-orange-700 border border-orange-200'
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
                   : 'text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <Icon className={`w-5 h-5 ${isActive ? 'text-orange-600' : 'text-gray-500'}`} />
+              <Icon className={`w-4 h-4 md:w-5 md:h-5 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
               <div className="flex-1 text-right">
-                <div className={`font-medium ${isActive ? 'text-orange-700' : 'text-gray-900'}`}>
+                <div className={`text-sm md:text-base font-medium ${isActive ? 'text-blue-700' : 'text-gray-900'}`}>
                   {item.label}
                 </div>
-                <div className="text-sm text-gray-500">
+                <div className="text-xs md:text-sm text-gray-500">
                   {item.description}
                 </div>
               </div>
@@ -180,10 +180,10 @@ const AdminLayout: React.FC = () => {
               size="sm"
               onClick={() => setSidebarOpen(true)}
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-4 h-4 md:w-5 md:h-5" />
             </Button>
-            <h1 className="text-lg font-semibold">פאנל ניהול</h1>
-            <div className="w-10" /> {/* Spacer for centering */}
+            <h1 className="text-base md:text-lg font-semibold">פאנל ניהול</h1>
+            <div className="w-8 md:w-10" /> {/* Spacer for centering */}
           </div>
         </div>
 
