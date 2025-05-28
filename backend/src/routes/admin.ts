@@ -38,12 +38,16 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
   const recentRequests = await prisma.techRequest.findMany({
     take: 5,
     orderBy: { created_at: 'desc' },
-    select: {
-      id: true,
-      full_name: true,
-      urgency_level: true,
-      status: true,
-      created_at: true
+    include: {
+      booked_slot: true,
+      assigned_admin: {
+        select: {
+          id: true,
+          username: true,
+          created_at: true,
+          updated_at: true
+        }
+      }
     }
   });
 
@@ -54,12 +58,16 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
       status: { in: ['pending', 'in_progress'] }
     },
     orderBy: { created_at: 'desc' },
-    select: {
-      id: true,
-      full_name: true,
-      phone: true,
-      problem_description: true,
-      created_at: true
+    include: {
+      booked_slot: true,
+      assigned_admin: {
+        select: {
+          id: true,
+          username: true,
+          created_at: true,
+          updated_at: true
+        }
+      }
     }
   });
 

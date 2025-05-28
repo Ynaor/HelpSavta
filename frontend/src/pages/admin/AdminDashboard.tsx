@@ -191,41 +191,22 @@ const AdminDashboard: React.FC = () => {
                         {request.full_name} - בקשה #{request.id}
                       </p>
                       <p className="text-xs text-gray-600">
-                        {request.created_at && formatDateTime(request.created_at)}
+                        {formatDateTime(request.created_at)}
                       </p>
                     </div>
                     <div className="flex items-center space-x-reverse space-x-2">
-                      {request.status && (
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
-                          request.status === 'in_progress' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                          request.status === 'completed' ? 'bg-green-100 text-green-700 border-green-200' :
-                          'bg-gray-100 text-gray-700 border-gray-200'
-                        }`}>
-                          {STATUS_LABELS[request.status as keyof typeof STATUS_LABELS]}
-                        </span>
-                      )}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
+                        request.status === 'in_progress' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                        request.status === 'completed' ? 'bg-green-100 text-green-700 border-green-200' :
+                        'bg-gray-100 text-gray-700 border-gray-200'
+                      }`}>
+                        {STATUS_LABELS[request.status]}
+                      </span>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          // Create a complete TechRequest object from the partial request
-                          const fullRequest: TechRequest = {
-                            id: request.id!,
-                            full_name: request.full_name || '',
-                            phone: request.phone || '',
-                            email: request.email || '',
-                            address: request.address || '',
-                            problem_description: request.problem_description || '',
-                            urgency_level: request.urgency_level || 'medium',
-                            status: request.status || 'pending',
-                            notes: request.notes || '',
-                            scheduled_date: request.scheduled_date || '',
-                            scheduled_time: request.scheduled_time || '',
-                            created_at: request.created_at || '',
-                            updated_at: request.updated_at || '',
-                            assigned_admin: request.assigned_admin || undefined
-                          };
-                          setSelectedRequest(fullRequest);
+                          setSelectedRequest(request);
                           setShowDetails(true);
                         }}
                       >
@@ -271,36 +252,17 @@ const AdminDashboard: React.FC = () => {
                         {request.full_name} - בקשה #{request.id}
                       </p>
                       <p className="text-xs text-red-600">
-                        {request.created_at && formatDateTime(request.created_at)}
+                        {formatDateTime(request.created_at)}
                       </p>
-                      {request.urgency_level && (
-                        <span className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(request.urgency_level)}`}>
-                          {URGENCY_LABELS[request.urgency_level as keyof typeof URGENCY_LABELS]}
-                        </span>
-                      )}
+                      <span className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(request.urgency_level)}`}>
+                        {URGENCY_LABELS[request.urgency_level]}
+                      </span>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        // Create a complete TechRequest object from the partial request
-                        const fullRequest: TechRequest = {
-                          id: request.id!,
-                          full_name: request.full_name || '',
-                          phone: request.phone || '',
-                          email: request.email || '',
-                          address: request.address || '',
-                          problem_description: request.problem_description || '',
-                          urgency_level: request.urgency_level || 'medium',
-                          status: request.status || 'pending',
-                          notes: request.notes || '',
-                          scheduled_date: request.scheduled_date || '',
-                          scheduled_time: request.scheduled_time || '',
-                          created_at: request.created_at || '',
-                          updated_at: request.updated_at || '',
-                          assigned_admin: request.assigned_admin || undefined
-                        };
-                        setSelectedRequest(fullRequest);
+                        setSelectedRequest(request);
                         setShowDetails(true);
                       }}
                     >
