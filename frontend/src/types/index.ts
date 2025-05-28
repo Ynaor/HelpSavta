@@ -87,7 +87,7 @@ export interface LoginForm {
 }
 
 export interface UpdateRequestForm {
-  status: 'pending' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   notes?: string;
   scheduled_date?: string;
   scheduled_time?: string;
@@ -100,8 +100,8 @@ export interface DashboardStats {
       total: number;
       pending: number;
       in_progress: number;
-      scheduled: number;
       completed: number;
+      cancelled: number;
     };
     slots: {
       total: number;
@@ -151,4 +151,44 @@ export interface AdminRequestUpdateForm {
 // Take request interface
 export interface TakeRequestForm {
   notes?: string;
+}
+
+// Slot lifecycle operation results
+export interface SlotOperationResult {
+  slot: AvailableSlot;
+  request?: TechRequest;
+  message: string;
+}
+
+// Comprehensive data for admin panel
+export interface ComprehensiveAdminData {
+  requests: TechRequest[];
+  slots: AvailableSlot[];
+  stats: DashboardStats;
+}
+
+// Enhanced error handling types
+export interface ApiError {
+  success: false;
+  error: string;
+  message?: string;
+  details?: Array<{
+    field: string;
+    message: string;
+  }>;
+}
+
+// Slot lifecycle events for real-time updates
+export type SlotLifecycleEvent =
+  | 'slot_released'    // When a request is cancelled/deleted
+  | 'slot_deleted'     // When a request is completed
+  | 'slot_booked'      // When a slot is booked
+  | 'slot_created';    // When a new slot is created
+
+export interface SlotLifecycleNotification {
+  event: SlotLifecycleEvent;
+  slotId: number;
+  requestId?: number;
+  message: string;
+  timestamp: string;
 }

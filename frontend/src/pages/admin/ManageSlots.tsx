@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Plus, Trash2, AlertCircle, Check } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { Calendar, Clock, Plus, Trash2, AlertCircle, Check, RefreshCw } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -7,34 +7,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { AvailableSlot, CreateSlotForm } from '../../types';
 import { slotsAPI, adminAPI } from '../../services/api';
 import { formatDate, getErrorMessage, generateDateRange } from '../../lib/utils';
+import { useSlotData } from '../../hooks/useSlotData';
 
 const ManageSlots: React.FC = () => {
-  const [slots, setSlots] = useState<AvailableSlot[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { slots, loading, error: slotError, refreshSlots, clearError } = useSlotData(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showBulkForm, setBulkForm] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<CreateSlotForm>();
   const { register: bulkRegister, handleSubmit: bulkHandleSubmit, formState: { errors: bulkErrors }, reset: bulkReset } = useForm();
 
-  useEffect(() => {
-    loadSlots();
-  }, []);
-
-  const loadSlots = async () => {
+  const handleRefresh = useCallback(async () => {
     try {
-      setLoading(true);
+      setRefreshing(true);
       setError('');
-      const result = await slotsAPI.getAll({ limit: 100 });
-      setSlots(result || []);
+      setSuccess('');
+      clearError();
+      await refreshSlots();
+      setSuccess('רשימת הזמנים עודכנה');
+      setTimeout(() => setSuccess(''), 2000);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [refreshSlots, clearError]);
 
   const handleCreateSlot = async (data: CreateSlotForm) => {
     try {
@@ -44,7 +44,7 @@ const ManageSlots: React.FC = () => {
       setSuccess('זמן חדש נוצר בהצלחה');
       reset();
       setShowCreateForm(false);
-      loadSlots();
+      await refreshSlots();
     } catch (err) {
       setError(getErrorMessage(err));
     }
@@ -68,7 +68,7 @@ const ManageSlots: React.FC = () => {
       setSuccess(`נוצרו ${dates.length} זמנים זמינים בהצלחה`);
       bulkReset();
       setBulkForm(false);
-      loadSlots();
+      await refreshSlots();
     } catch (err) {
       setError(getErrorMessage(err));
     }
@@ -82,7 +82,7 @@ const ManageSlots: React.FC = () => {
     try {
       await slotsAPI.delete(slotId);
       setSuccess('זמן זמין נמחק בהצלחה');
-      loadSlots();
+      await refreshSlots();
     } catch (err) {
       setError(getErrorMessage(err));
     }
@@ -266,6 +266,14 @@ const ManageSlots: React.FC = () => {
           <Calendar className="w-4 h-4 ml-1" />
           צור זמנים בכמות גדולה
         </Button>
+        <Button
+          variant="outline"
+          onClick={handleRefresh}
+          disabled={refreshing}
+        >
+          <RefreshCw className={`w-4 h-4 ml-1 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'מרענן...' : 'רענן'}
+        </Button>
       </div>
 
       {/* Create Forms */}
@@ -280,10 +288,10 @@ const ManageSlots: React.FC = () => {
         </div>
       )}
 
-      {error && (
+      {(error || slotError) && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-reverse space-x-2 text-red-700">
           <AlertCircle className="w-5 h-5" />
-          <span>{error}</span>
+          <span>{error || slotError}</span>
         </div>
       )}
 
@@ -326,7 +334,7 @@ const ManageSlots: React.FC = () => {
                       .map((slot) => (
                         <div
                           key={slot.id}
-                          className={`p-4 rounded-lg border ${
+                          className={`p-4 rounded-lg border transition-colors ${
                             slot.is_booked
                               ? 'bg-red-50 border-red-200'
                               : 'bg-green-50 border-green-200'
@@ -363,6 +371,12 @@ const ManageSlots: React.FC = () => {
                           {slot.is_booked && slot.tech_requests && slot.tech_requests.length > 0 && (
                             <div className="mt-2 text-sm text-gray-600">
                               <span>תור לקוח: {slot.tech_requests[0].full_name}</span>
+                              <div className="text-xs text-gray-500">
+                                סטטוס: {slot.tech_requests[0].status === 'pending' ? 'ממתין' :
+                                         slot.tech_requests[0].status === 'in_progress' ? 'בטיפול' :
+                                         slot.tech_requests[0].status === 'completed' ? 'הושלם' :
+                                         slot.tech_requests[0].status === 'cancelled' ? 'בוטל' : slot.tech_requests[0].status}
+                              </div>
                             </div>
                           )}
                         </div>

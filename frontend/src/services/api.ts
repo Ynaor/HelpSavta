@@ -129,24 +129,32 @@ export const slotsAPI = {
     is_booked?: boolean;
     page?: number;
     limit?: number;
-  }) => 
+  }) =>
     paginatedApiCall(() => api.get<PaginatedResponse<AvailableSlot>>('/slots', { params })),
   
-  getAvailable: (date?: string) => 
-    apiCall(() => api.get<ApiResponse<AvailableSlot[]>>('/slots/available', { 
-      params: date ? { date } : {} 
+  getAvailable: (date?: string) =>
+    apiCall(() => api.get<ApiResponse<AvailableSlot[]>>('/slots/available', {
+      params: date ? { date } : {}
     })),
   
-  create: (data: CreateSlotForm) => 
+  create: (data: CreateSlotForm) =>
     apiCall(() => api.post<ApiResponse<AvailableSlot>>('/slots', data)),
   
-  book: (slotId: number, requestId: number) => 
+  book: (slotId: number, requestId: number) =>
     apiCall(() => api.put<ApiResponse<{ slot: AvailableSlot; request: TechRequest }>>(`/slots/${slotId}/book`, {
       request_id: requestId
     })),
   
-  delete: (id: number) => 
+  delete: (id: number) =>
     apiCall(() => api.delete<ApiResponse<null>>(`/slots/${id}`)),
+
+  // Get slot with detailed information including associated requests
+  getById: (id: number) =>
+    apiCall(() => api.get<ApiResponse<AvailableSlot>>(`/slots/${id}`)),
+
+  // Release a booked slot (make it available again)
+  release: (id: number) =>
+    apiCall(() => api.put<ApiResponse<AvailableSlot>>(`/slots/${id}/release`)),
 };
 
 // Admin API
@@ -196,6 +204,14 @@ export const adminAPI = {
   // Admin takes a request (assigns themselves)
   takeRequest: (id: number, data?: TakeRequestForm) =>
     apiCall(() => api.post<ApiResponse<TechRequest>>(`/admin/requests/${id}/take`, data || {})),
+
+  // Get comprehensive data (requests + slots) for dashboard refresh
+  getComprehensiveData: () =>
+    apiCall(() => api.get<ApiResponse<{
+      requests: TechRequest[];
+      slots: AvailableSlot[];
+      stats: DashboardStats;
+    }>>('/admin/comprehensive-data')),
 };
 
 export default api;

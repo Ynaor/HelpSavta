@@ -261,10 +261,11 @@ const ManageRequests: React.FC = () => {
 
       {/* Request Details Modal */}
       {showDetails && selectedRequest && (
-        <RequestDetailsModal 
+        <RequestDetailsModal
           request={selectedRequest}
           onClose={() => setShowDetails(false)}
           onUpdate={loadRequests}
+          onSlotUpdate={loadRequests} // Refresh requests when slots change
           showTakeRequestButton={true}
         />
       )}
