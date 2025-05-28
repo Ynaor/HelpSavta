@@ -14,6 +14,7 @@ import requestRoutes from './routes/requests';
 import slotRoutes from './routes/slots';
 import adminRoutes from './routes/admin';
 import authRoutes from './routes/auth';
+import testRoutes from './routes/test';
 
 // Load environment variables
 dotenv.config();
@@ -91,6 +92,7 @@ app.use('/api/requests', requestRoutes);
 app.use('/api/slots', slotRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/test', testRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

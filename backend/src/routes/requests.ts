@@ -167,6 +167,17 @@ router.post('/', validateBody(schemas.techRequest), asyncHandler(async (req, res
     }
   });
 
+  // Send request created email if user provided email
+  if (request.email) {
+    try {
+      await emailService.sendRequestCreatedEmail(request);
+      console.log(`📧 Request created email sent for request #${request.id}`);
+    } catch (error) {
+      // Log error but don't fail the request creation
+      console.error(`❌ Failed to send request created email for request #${request.id}:`, error);
+    }
+  }
+
   res.status(201).json({
     success: true,
     message: 'בקשה נוצרה בהצלחה',
@@ -250,12 +261,7 @@ router.put('/:id', validateBody(schemas.updateRequestStatus), asyncHandler(async
       // Access email field with type assertion (database path was corrected in .env)
       const requestWithEmail = existingRequest as typeof existingRequest & { email: string };
       
-      await emailService.sendStatusUpdateEmail(
-        requestWithEmail.email,
-        requestWithEmail.full_name,
-        requestId.toString(),
-        newStatus
-      );
+      await emailService.sendStatusUpdateEmailTemplate(requestWithEmail, { id: 1, username: 'מנהל מערכת' });
       console.log(`📧 Status update email triggered for request #${requestId}`);
     } catch (error) {
       // Log error but don't fail the status update
