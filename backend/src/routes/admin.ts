@@ -51,11 +51,10 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
     }
   });
 
-  // Get urgent requests
-  const urgentRequests = await prisma.techRequest.findMany({
+  // Get in-progress requests for dashboard
+  const dashboardInProgressRequests = await prisma.techRequest.findMany({
     where: {
-      urgency_level: 'urgent',
-      status: { in: ['pending', 'in_progress'] }
+      status: 'in_progress'
     },
     orderBy: { created_at: 'desc' },
     include: {
@@ -88,7 +87,7 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
         }
       },
       recentRequests,
-      urgentRequests
+      inProgressRequests: dashboardInProgressRequests
     }
   });
 }));

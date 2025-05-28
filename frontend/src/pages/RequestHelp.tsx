@@ -345,28 +345,47 @@ const RequestHelp: React.FC = () => {
                     <p className="text-sm text-gray-500 mt-2">אנא נסה שוב מאוחר יותר</p>
                   </div>
                 ) : (
-                  <div className="space-y-6">
-                    {Object.entries(groupSlotsByDate(availableSlots)).map(([date, slots]) => (
-                      <div key={date}>
-                        <h3 className="font-medium mb-3">{formatDate(date)}</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          {slots.map((slot) => (
-                            <button
-                              key={slot.id}
-                              type="button"
-                              onClick={() => handleSlotSelection(slot)}
-                              className={`p-3 rounded-lg border text-sm transition-colors ${
-                                selectedSlot?.id === slot.id
-                                  ? 'border-orange-500 bg-orange-50 text-orange-700'
-                                  : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50'
-                              }`}
-                            >
-                              {slot.start_time} - {slot.end_time}
-                            </button>
-                          ))}
+                  <div>
+                    {/* Time slots container with fixed height and scroll */}
+                    <div className="max-h-96 overflow-y-auto border rounded-lg p-4 bg-gray-50">
+                      <div className="space-y-6">
+                        {Object.entries(groupSlotsByDate(availableSlots)).map(([date, slots]) => (
+                          <div key={date}>
+                            <h3 className="font-medium mb-3 sticky top-0 bg-gray-50 py-2 border-b border-gray-200">
+                              {formatDate(date)}
+                            </h3>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                              {slots.map((slot) => (
+                                <button
+                                  key={slot.id}
+                                  type="button"
+                                  onClick={() => handleSlotSelection(slot)}
+                                  className={`p-3 rounded-lg border text-sm transition-colors ${
+                                    selectedSlot?.id === slot.id
+                                      ? 'border-orange-500 bg-orange-50 text-orange-700'
+                                      : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50'
+                                  }`}
+                                >
+                                  {slot.start_time} - {slot.end_time}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Selected slot indicator - always visible below the scrollable area */}
+                    {selectedSlot && (
+                      <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <div className="flex items-center space-x-reverse space-x-2">
+                          <Check className="w-4 h-4 text-orange-600" />
+                          <span className="text-sm font-medium text-orange-700">
+                            זמן נבחר: {formatDate(selectedSlot.date)} בשעה {selectedSlot.start_time}-{selectedSlot.end_time}
+                          </span>
                         </div>
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>
