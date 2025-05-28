@@ -8,18 +8,21 @@ import { Textarea } from '../ui/textarea';
 import { TechRequest, STATUS_LABELS, URGENCY_LABELS, AdminRequestUpdateForm } from '../../types';
 import { adminAPI, requestsAPI } from '../../services/api';
 import { formatDateTime, getErrorMessage } from '../../lib/utils';
+import SlotStatusNotification from '../admin/SlotStatusNotification';
 
 interface RequestDetailsModalProps {
   request: TechRequest;
   onClose: () => void;
   onUpdate: () => void;
+  onSlotUpdate?: () => void; // New prop for slot data refresh
   showTakeRequestButton?: boolean;
 }
 
-const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({ 
-  request, 
-  onClose, 
+const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({
+  request,
+  onClose,
   onUpdate,
+  onSlotUpdate,
   showTakeRequestButton = false
 }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -29,18 +32,51 @@ const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [takeRequestLoading, setTakeRequestLoading] = useState<number | null>(null);
+  const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [slotNotification, setSlotNotification] = useState<{
+    type: 'slot_released' | 'slot_deleted' | 'success' | 'error';
+    message: string;
+  } | null>(null);
   const editingInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
   const cursorPositionRef = useRef<number>(0);
 
 
   const handleStatusUpdate = async (requestId: number, newStatus: TechRequest['status']) => {
     try {
+      setStatusUpdateLoading(true);
+      setError('');
       await requestsAPI.update(requestId, { status: newStatus });
-      onUpdate(); // Refresh data
-      onClose();
+      
+      // Show specialized notifications for status changes that affect slots
+      if (newStatus === 'completed') {
+        setSlotNotification({
+          type: 'slot_deleted',
+          message: 'הבקשה הושלמה והזמן הזמין נמחק מהמערכת'
+        });
+      } else if (newStatus === 'cancelled') {
+        setSlotNotification({
+          type: 'slot_released',
+          message: 'הבקשה בוטלה והזמן הזמין שוחרר'
+        });
+      } else {
+        setSuccess('סטטוס הבקשה עודכן בהצלחה');
+      }
+      
+      onUpdate(); // Refresh request data
+      if (onSlotUpdate) {
+        onSlotUpdate(); // Refresh slot data
+      }
+      
+      // Close modal after a short delay to show success message
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (err) {
       console.error('Error updating status:', err);
-      setError('שגיאה בעדכון הסטטוס');
+      setError(getErrorMessage(err));
+    } finally {
+      setStatusUpdateLoading(false);
     }
   };
 
@@ -130,17 +166,32 @@ const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({
   };
 
   const handleDeleteRequest = async (requestId: number) => {
-    if (!window.confirm('האם אתה בטוח שברצונך למחוק את הבקשה?')) {
+    if (!window.confirm('האם אתה בטוח שברצונך למחוק את הבקשה? אם הבקשה קשורה לזמן זמין, הזמן ישוחרר.')) {
       return;
     }
 
     try {
+      setDeleteLoading(true);
+      setError('');
       await requestsAPI.delete(requestId);
-      onUpdate();
-      onClose();
+      setSlotNotification({
+        type: 'slot_released',
+        message: 'הבקשה נמחקה בהצלחה והזמן הזמין שוחרר'
+      });
+      onUpdate(); // Refresh request data
+      if (onSlotUpdate) {
+        onSlotUpdate(); // Refresh slot data
+      }
+      
+      // Close modal after a short delay to show success message
+      setTimeout(() => {
+        onClose();
+      }, 2000);
     } catch (err) {
       console.error('Error deleting request:', err);
-      setError('שגיאה במחיקת הבקשה');
+      setError(getErrorMessage(err));
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -331,6 +382,14 @@ const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Success/Error Messages */}
+          {slotNotification && (
+            <SlotStatusNotification
+              type={slotNotification.type}
+              message={slotNotification.message}
+              onDismiss={() => setSlotNotification(null)}
+              autoHide={false}
+            />
+          )}
           {success && (
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
               {success}
@@ -442,6 +501,7 @@ const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({
               value={request.status}
               onChange={(e) => handleStatusUpdate(request.id, e.target.value as TechRequest['status'])}
               className="flex-1 min-w-[150px]"
+              disabled={statusUpdateLoading}
             >
               <option value="pending">{STATUS_LABELS.pending}</option>
               <option value="in_progress">{STATUS_LABELS.in_progress}</option>
@@ -452,9 +512,14 @@ const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({
               variant="destructive"
               size="sm"
               onClick={() => handleDeleteRequest(request.id)}
+              disabled={deleteLoading || statusUpdateLoading}
             >
-              <Trash2 className="w-4 h-4 ml-1" />
-              מחק
+              {deleteLoading ? (
+                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+              ) : (
+                <Trash2 className="w-4 h-4 ml-1" />
+              )}
+              {deleteLoading ? 'מוחק...' : 'מחק'}
             </Button>
           </div>
         </CardContent>

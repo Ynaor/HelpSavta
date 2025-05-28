@@ -182,7 +182,10 @@ router.put('/:id', validateBody(schemas.updateRequestStatus), asyncHandler(async
   const requestId = parseInt(req.params.id);
   
   const existingRequest = await prisma.techRequest.findUnique({
-    where: { id: requestId }
+    where: { id: requestId },
+    include: {
+      booked_slot: true
+    }
   });
 
   if (!existingRequest) {
@@ -193,16 +196,52 @@ router.put('/:id', validateBody(schemas.updateRequestStatus), asyncHandler(async
     });
   }
 
-  // Store previous status for email logic
+  // Store previous status for email logic and slot management
   const previousStatus = existingRequest.status;
   const newStatus = req.body.status || previousStatus;
 
-  const updatedRequest = await prisma.techRequest.update({
-    where: { id: requestId },
-    data: req.body,
-    include: {
-      booked_slot: true
+  // Handle slot lifecycle management based on status changes
+  const result = await prisma.$transaction(async (tx) => {
+    // Update the request
+    const updatedRequest = await tx.techRequest.update({
+      where: { id: requestId },
+      data: req.body,
+      include: {
+        booked_slot: true
+      }
+    });
+
+    // Handle slot lifecycle based on new status
+    if (existingRequest.booked_slot_id) {
+      if (newStatus === 'cancelled') {
+        // Release the slot - make it available again
+        await tx.availableSlot.update({
+          where: { id: existingRequest.booked_slot_id },
+          data: { is_booked: false }
+        });
+
+        // Clear the slot reference from the request
+        await tx.techRequest.update({
+          where: { id: requestId },
+          data: {
+            booked_slot_id: null,
+            scheduled_date: null,
+            scheduled_time: null
+          }
+        });
+
+        console.log(`🔄 Slot ${existingRequest.booked_slot_id} released due to request #${requestId} cancellation`);
+      } else if (newStatus === 'completed' || newStatus === 'done') {
+        // Delete the slot completely for completed requests
+        await tx.availableSlot.delete({
+          where: { id: existingRequest.booked_slot_id }
+        });
+
+        console.log(`🗑️ Slot ${existingRequest.booked_slot_id} deleted due to request #${requestId} completion`);
+      }
     }
+
+    return updatedRequest;
   });
 
   // Send email notification when status changes from "pending" to "in_progress"
@@ -227,7 +266,7 @@ router.put('/:id', validateBody(schemas.updateRequestStatus), asyncHandler(async
   res.json({
     success: true,
     message: 'בקשה עודכנה בהצלחה',
-    data: updatedRequest
+    data: result
   });
 }));
 
@@ -239,7 +278,10 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   const requestId = parseInt(req.params.id);
   
   const existingRequest = await prisma.techRequest.findUnique({
-    where: { id: requestId }
+    where: { id: requestId },
+    include: {
+      booked_slot: true
+    }
   });
 
   if (!existingRequest) {
@@ -250,8 +292,22 @@ router.delete('/:id', asyncHandler(async (req, res) => {
     });
   }
 
-  await prisma.techRequest.delete({
-    where: { id: requestId }
+  // Use transaction to ensure atomicity when releasing slot and deleting request
+  await prisma.$transaction(async (tx) => {
+    // If request has a booked slot, release it before deleting
+    if (existingRequest.booked_slot_id) {
+      await tx.availableSlot.update({
+        where: { id: existingRequest.booked_slot_id },
+        data: { is_booked: false }
+      });
+
+      console.log(`🔄 Slot ${existingRequest.booked_slot_id} released due to request #${requestId} deletion`);
+    }
+
+    // Delete the request
+    await tx.techRequest.delete({
+      where: { id: requestId }
+    });
   });
 
   res.json({
