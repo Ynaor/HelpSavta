@@ -6,12 +6,14 @@ import {
   AlertCircle,
   Users,
   TrendingUp,
-  Eye
+  Eye,
+  PlayCircle,
+  Settings
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { DashboardStats, STATUS_LABELS, URGENCY_LABELS, TechRequest } from '../../types';
+import { DashboardStats, STATUS_LABELS, TechRequest } from '../../types';
 import { adminAPI } from '../../services/api';
 import { formatDateTime, getErrorMessage } from '../../lib/utils';
 import RequestDetailsModal from '../../components/requests/RequestDetailsModal';
@@ -41,15 +43,6 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const getUrgencyColor = (urgency: string) => {
-    switch (urgency) {
-      case 'urgent': return 'text-red-600 bg-red-50 border-red-200';
-      case 'high': return 'text-orange-600 bg-orange-50 border-orange-200';
-      case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'low': return 'text-green-600 bg-green-50 border-green-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
-    }
-  };
 
   if (loading) {
     return (
@@ -93,7 +86,7 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         {/* Total Requests */}
         <Card>
           <CardContent className="p-6">
@@ -123,6 +116,23 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
                 <Clock className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* In Progress Requests */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">בקשות בטיפול</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {stats.statistics.requests.in_progress}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <PlayCircle className="w-6 h-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
@@ -222,41 +232,43 @@ const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Urgent Requests */}
+        {/* In Progress Requests */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center space-x-reverse space-x-2">
-                <AlertCircle className="w-5 h-5 text-red-600" />
-                <span>בקשות דחופות</span>
+                <Settings className="w-5 h-5 text-blue-600" />
+                <span>בטיפול</span>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate('/admin/requests?urgency=urgent')}
+                onClick={() => navigate('/admin/requests?status=in_progress')}
               >
                 צפה בהכל
               </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {stats.urgentRequests && stats.urgentRequests.length > 0 ? (
+            {stats.inProgressRequests && stats.inProgressRequests.length > 0 ? (
               <div className="space-y-4">
-                {stats.urgentRequests.slice(0, 5).map((request) => (
+                {stats.inProgressRequests.slice(0, 5).map((request) => (
                   <div
                     key={request.id}
-                    className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg"
                   >
                     <div className="flex-1">
-                      <p className="font-medium text-sm text-red-800">
+                      <p className="font-medium text-sm text-blue-800">
                         {request.full_name} - בקשה #{request.id}
                       </p>
-                      <p className="text-xs text-red-600">
+                      <p className="text-xs text-blue-600">
                         {formatDateTime(request.created_at)}
                       </p>
-                      <span className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(request.urgency_level)}`}>
-                        {URGENCY_LABELS[request.urgency_level]}
-                      </span>
+                      {request.assigned_admin && (
+                        <p className="text-xs text-blue-500 mt-1">
+                          מטופל על ידי: {request.assigned_admin.username}
+                        </p>
+                      )}
                     </div>
                     <Button
                       variant="ghost"
@@ -272,7 +284,7 @@ const AdminDashboard: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-600 text-center py-8">אין בקשות דחופות</p>
+              <p className="text-gray-600 text-center py-8">אין בקשות בטיפול</p>
             )}
           </CardContent>
         </Card>

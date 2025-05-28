@@ -99,6 +99,7 @@ export interface DashboardStats {
     requests: {
       total: number;
       pending: number;
+      in_progress: number;
       scheduled: number;
       completed: number;
     };
@@ -109,7 +110,7 @@ export interface DashboardStats {
     };
   };
   recentRequests: TechRequest[];
-  urgentRequests: TechRequest[];
+  inProgressRequests: TechRequest[];
 }
 
 // Hebrew labels for status and urgency
