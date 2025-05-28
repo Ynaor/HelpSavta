@@ -196,6 +196,9 @@ export const adminAPI = {
   
   getAdmins: () =>
     apiCall(() => api.get<ApiResponse<AdminUser[]>>('/admin/admins')),
+  
+  deleteAdmin: (id: number) =>
+    apiCall(() => api.delete<ApiResponse<null>>(`/admin/admins/${id}`)),
 
   // Admin request field editing
   updateRequestAsAdmin: (id: number, data: AdminRequestUpdateForm) =>

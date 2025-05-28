@@ -55,11 +55,18 @@ model AvailableSlot {
 
 // Admin users for system management
 model AdminUser {
-  id           Int      @id @default(autoincrement())
-  username     String   @unique // שם משתמש ייחודי
-  password_hash String  // סיסמה מוצפנת
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  id              Int        @id @default(autoincrement())
+  username        String     @unique // שם משתמש ייחודי
+  password_hash   String     // סיסמה מוצפנת
+  role            String     @default("VOLUNTEER") // תפקיד המנהל: SYSTEM_ADMIN, VOLUNTEER
+  created_by_id   Int?       // מי יצר את המנהל הזה
+  is_active       Boolean    @default(true) // האם המנהל פעיל
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+
+  // Self-referential relation for admin creation tracking
+  created_by      AdminUser?  @relation("AdminCreatedBy", fields: [created_by_id], references: [id])
+  created_admins  AdminUser[] @relation("AdminCreatedBy")
 
   // Relation to assigned requests
   assigned_requests TechRequest[]

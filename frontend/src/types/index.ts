@@ -34,8 +34,11 @@ export interface AvailableSlot {
 export interface AdminUser {
   id: number;
   username: string;
+  role?: 'SYSTEM_ADMIN' | 'VOLUNTEER';
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
+  created_by?: number;
 }
 
 export interface NotificationLog {

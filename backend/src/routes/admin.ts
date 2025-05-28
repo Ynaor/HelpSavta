@@ -1,7 +1,7 @@
 import express from 'express';
 import * as bcrypt from 'bcryptjs';
 import { prisma } from '../server';
-import { requireAuth } from '../middleware/auth';
+import { requireAuth, requireSystemAdmin, requireAnyAdmin, requireRequestOwnership } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { validateBody, schemas } from '../middleware/validation';
 import { emailService } from '../services/emailService';
@@ -15,7 +15,7 @@ router.use(requireAuth);
  * GET /api/admin/dashboard - Get dashboard statistics
  * קבלת סטטיסטיקות לוח הבקרה
  */
-router.get('/dashboard', asyncHandler(async (req, res) => {
+router.get('/dashboard', requireAnyAdmin, asyncHandler(async (req, res) => {
   const [
     totalRequests,
     pendingRequests,
@@ -34,8 +34,27 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
     prisma.availableSlot.count({ where: { is_booked: true } })
   ]);
 
-  // Get recent requests
+  // For VOLUNTEER role, filter data to their scope
+  let recentRequestsWhere: any = {};
+  let inProgressWhere: any = { status: 'in_progress' };
+  
+  if (req.session.role === 'VOLUNTEER') {
+    const volunteerFilter = {
+      OR: [
+        { assigned_admin_id: req.session.userId },
+        { assigned_admin_id: null }
+      ]
+    };
+    recentRequestsWhere = volunteerFilter;
+    inProgressWhere = {
+      ...inProgressWhere,
+      ...volunteerFilter
+    };
+  }
+
+  // Get recent requests (filtered for volunteers)
   const recentRequests = await prisma.techRequest.findMany({
+    where: recentRequestsWhere,
     take: 5,
     orderBy: { created_at: 'desc' },
     include: {
@@ -51,11 +70,9 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
     }
   });
 
-  // Get in-progress requests for dashboard
+  // Get in-progress requests for dashboard (filtered for volunteers)
   const dashboardInProgressRequests = await prisma.techRequest.findMany({
-    where: {
-      status: 'in_progress'
-    },
+    where: inProgressWhere,
     orderBy: { created_at: 'desc' },
     include: {
       booked_slot: true,
@@ -96,7 +113,7 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
  * GET /api/admin/requests - Get all requests with filtering (Admin view)
  * קבלת כל הבקשות עם סינון (תצוגת מנהל)
  */
-router.get('/requests', asyncHandler(async (req, res) => {
+router.get('/requests', requireAnyAdmin, asyncHandler(async (req, res) => {
   const { 
     status, 
     urgency_level, 
@@ -127,6 +144,14 @@ router.get('/requests', asyncHandler(async (req, res) => {
   }
 
   const skip = (Number(page) - 1) * Number(limit);
+  
+  // For VOLUNTEER role, filter to show only their assigned requests and unassigned requests
+  if (req.session.role === 'VOLUNTEER') {
+    where.OR = [
+      { assigned_admin_id: req.session.userId },
+      { assigned_admin_id: null }
+    ];
+  }
   
   const [requests, total] = await Promise.all([
     prisma.techRequest.findMany({
@@ -162,10 +187,10 @@ router.get('/requests', asyncHandler(async (req, res) => {
 }));
 
 /**
- * POST /api/admin/slots/bulk - Create multiple slots
- * יצירת מספר שעות בבת אחת
+ * POST /api/admin/slots/bulk - Create multiple slots (SYSTEM_ADMIN only)
+ * יצירת מספר שעות בבת אחת (רק למנהל מערכת)
  */
-router.post('/slots/bulk', asyncHandler(async (req, res) => {
+router.post('/slots/bulk', requireSystemAdmin, asyncHandler(async (req, res) => {
   const { dates, start_time, end_time } = req.body;
   
   if (!Array.isArray(dates) || dates.length === 0) {
@@ -203,10 +228,10 @@ router.post('/slots/bulk', asyncHandler(async (req, res) => {
 }));
 
 /**
- * GET /api/admin/notifications - Get notification logs
- * קבלת יומן התראות
+ * GET /api/admin/notifications - Get notification logs (SYSTEM_ADMIN only)
+ * קבלת יומן התראות (רק למנהל מערכת)
  */
-router.get('/notifications', asyncHandler(async (req, res) => {
+router.get('/notifications', requireSystemAdmin, asyncHandler(async (req, res) => {
   const { type, status, page = 1, limit = 20 } = req.query;
   
   const where: any = {};
@@ -238,11 +263,11 @@ router.get('/notifications', asyncHandler(async (req, res) => {
 }));
 
 /**
- * POST /api/admin/create-admin - Create new admin user
- * יצירת משתמש מנהל חדש
+ * POST /api/admin/create-admin - Create new admin user (SYSTEM_ADMIN only)
+ * יצירת משתמש מנהל חדש (רק למנהל מערכת)
  */
-router.post('/create-admin', asyncHandler(async (req, res) => {
-  const { username, password } = req.body;
+router.post('/create-admin', requireSystemAdmin, asyncHandler(async (req, res) => {
+  const { username, password, role } = req.body;
   
   if (!username || !password) {
     return res.status(400).json({
@@ -272,49 +297,129 @@ router.post('/create-admin', asyncHandler(async (req, res) => {
   const newAdmin = await prisma.adminUser.create({
     data: {
       username,
-      password_hash
-    },
-    select: {
-      id: true,
-      username: true,
-      created_at: true
-    }
+      password_hash,
+      role: role || 'VOLUNTEER',
+      created_by_id: req.session.userId
+    } as any
   });
 
   res.status(201).json({
     success: true,
     message: 'משתמש מנהל נוצר בהצלחה',
-    data: newAdmin
+    data: {
+      id: newAdmin.id,
+      username: newAdmin.username,
+      role: (newAdmin as any).role,
+      created_at: newAdmin.created_at
+    }
   });
 }));
 
 /**
- * GET /api/admin/admins - Get all admin users
- * קבלת כל משתמשי המנהל
+ * GET /api/admin/admins - Get all admin users (SYSTEM_ADMIN only)
+ * קבלת כל משתמשי המנהל (רק למנהל מערכת)
  */
-router.get('/admins', asyncHandler(async (req, res) => {
+router.get('/admins', requireSystemAdmin, asyncHandler(async (req, res) => {
   const admins = await prisma.adminUser.findMany({
+    where: { is_active: true } as any, // Only return active admins
     orderBy: { created_at: 'desc' },
-    select: {
-      id: true,
-      username: true,
-      created_at: true,
-      updated_at: true
-      // Exclude password_hash for security
-    }
+    // Exclude password_hash for security
   });
+
+  // Map to include role information using type assertion
+  const adminsWithRoles = admins.map(admin => ({
+    id: admin.id,
+    username: admin.username,
+    role: (admin as any).role,
+    is_active: (admin as any).is_active,
+    created_at: admin.created_at,
+    updated_at: admin.updated_at,
+    created_by: (admin as any).created_by
+  }));
 
   res.json({
     success: true,
-    data: admins
+    data: adminsWithRoles
   });
 }));
 
 /**
- * PUT /api/admin/requests/:id - Update a request (all fields allowed for admin)
- * עדכון בקשה (כל השדות מותרים למנהל)
+ * DELETE /api/admin/admins/:id - Delete admin user (SYSTEM_ADMIN only)
+ * מחיקת משתמש מנהל (רק למנהל מערכת)
  */
-router.put('/requests/:id', validateBody(schemas.adminRequestUpdate), asyncHandler(async (req, res) => {
+router.delete('/admins/:id', requireSystemAdmin, asyncHandler(async (req, res) => {
+  const adminId = parseInt(req.params.id!);
+  const currentAdminId = req.session.userId;
+  
+  if (isNaN(adminId)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid admin ID',
+      message: 'מזהה מנהל לא תקין'
+    });
+  }
+
+  // Prevent self-deletion
+  if (adminId === currentAdminId) {
+    return res.status(400).json({
+      success: false,
+      error: 'Cannot delete yourself',
+      message: 'לא ניתן למחוק את עצמך'
+    });
+  }
+
+  // Check if admin exists
+  const adminToDelete = await prisma.adminUser.findUnique({
+    where: { id: adminId }
+  });
+
+  if (!adminToDelete) {
+    return res.status(404).json({
+      success: false,
+      error: 'Admin not found',
+      message: 'משתמש מנהל לא נמצא'
+    });
+  }
+
+  try {
+    // Check if admin has assigned requests
+    const assignedRequests = await prisma.techRequest.count({
+      where: { assigned_admin_id: adminId }
+    });
+
+    if (assignedRequests > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot delete admin with assigned requests',
+        message: `לא ניתן למחוק מנהל עם ${assignedRequests} בקשות מוקצות`
+      });
+    }
+
+    // Soft delete - set is_active to false
+    await prisma.adminUser.update({
+      where: { id: adminId },
+      data: { is_active: false } as any
+    });
+
+    res.json({
+      success: true,
+      message: 'משתמש מנהל הושבת בהצלחה'
+    });
+  } catch (error) {
+    console.error('Error deleting admin:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete admin',
+      message: 'שגיאה במחיקת המנהל'
+    });
+  }
+}));
+
+/**
+ * PUT /api/admin/requests/:id - Update a request (role-based access)
+ * עדכון בקשה (גישה מבוססת תפקיד)
+ */
+router.put('/requests/:id', requireRequestOwnership, validateBody(schemas.adminRequestUpdate), asyncHandler(async (req, res) => {
   const requestId = parseInt(req.params.id);
   const updateData = req.body;
   
@@ -337,6 +442,31 @@ router.put('/requests/:id', validateBody(schemas.adminRequestUpdate), asyncHandl
       error: 'Request not found',
       message: 'בקשה לא נמצאה'
     });
+  }
+
+  // Role-based field restrictions for VOLUNTEER
+  if (req.session.role === 'VOLUNTEER') {
+    // Volunteers can only update certain fields
+    const allowedFields = ['status', 'notes', 'scheduled_date', 'scheduled_time'];
+    const updateKeys = Object.keys(updateData);
+    const restrictedFields = updateKeys.filter(key => !allowedFields.includes(key));
+    
+    if (restrictedFields.length > 0) {
+      return res.status(403).json({
+        success: false,
+        error: 'Volunteers cannot update these fields',
+        message: `מתנדבים לא יכולים לעדכן את השדות: ${restrictedFields.join(', ')}`
+      });
+    }
+
+    // Volunteers cannot change assigned_admin_id
+    if (updateData.assigned_admin_id && updateData.assigned_admin_id !== req.session.userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Volunteers cannot reassign requests',
+        message: 'מתנדבים לא יכולים להעביר בקשות למנהלים אחרים'
+      });
+    }
   }
 
   // Store previous status for email logic
@@ -382,7 +512,7 @@ router.put('/requests/:id', validateBody(schemas.adminRequestUpdate), asyncHandl
  * POST /api/admin/requests/:id/take - Admin "takes" a request (assigns themselves)
  * מנהל "לוקח" בקשה (מקצה את עצמו אליה)
  */
-router.post('/requests/:id/take', validateBody(schemas.adminTakeRequest), asyncHandler(async (req, res) => {
+router.post('/requests/:id/take', requireAnyAdmin, validateBody(schemas.adminTakeRequest), asyncHandler(async (req, res) => {
   const requestId = parseInt(req.params.id);
   const { notes } = req.body;
   
@@ -418,12 +548,24 @@ router.post('/requests/:id/take', validateBody(schemas.adminTakeRequest), asyncH
     });
   }
 
-  // Check if request is already assigned (using type assertion for now)
-  if ((existingRequest as any).assigned_admin_id) {
-    return res.status(400).json({
+  // Check if request is already assigned
+  if (existingRequest.assigned_admin_id) {
+    // SYSTEM_ADMIN can reassign requests
+    if (req.session.role !== 'SYSTEM_ADMIN') {
+      return res.status(400).json({
+        success: false,
+        error: 'Request already assigned',
+        message: 'בקשה כבר מוקצית למנהל אחר'
+      });
+    }
+  }
+
+  // For VOLUNTEER role, only allow taking unassigned requests
+  if (req.session.role === 'VOLUNTEER' && existingRequest.assigned_admin_id) {
+    return res.status(403).json({
       success: false,
-      error: 'Request already assigned',
-      message: 'בקשה כבר מוקצית למנהל אחר'
+      error: 'Volunteers can only take unassigned requests',
+      message: 'מתנדבים יכולים לקחת רק בקשות שלא הוקצו'
     });
   }
 

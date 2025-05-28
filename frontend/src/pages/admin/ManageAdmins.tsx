@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { 
-  Users, 
-  UserPlus, 
-  Eye, 
-  EyeOff, 
-  AlertCircle, 
+import {
+  Users,
+  UserPlus,
+  Eye,
+  EyeOff,
+  AlertCircle,
   CheckCircle,
-  Shield
+  Shield,
+  Trash2
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { AdminUser, CreateAdminForm } from '../../types';
-import { adminAPI } from '../../services/api';
+import { adminAPI, authAPI } from '../../services/api';
 import { formatDateTime, getErrorMessage } from '../../lib/utils';
 
 const ManageAdmins: React.FC = () => {
@@ -24,11 +25,15 @@ const ManageAdmins: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ adminId: number; username: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<CreateAdminForm>();
 
   useEffect(() => {
     loadAdmins();
+    loadCurrentUser();
   }, []);
 
   const loadAdmins = async () => {
@@ -44,6 +49,42 @@ const ManageAdmins: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadCurrentUser = async () => {
+    try {
+      const user = await authAPI.me();
+      setCurrentUser(user);
+    } catch (err) {
+      console.error('Error loading current user:', err);
+    }
+  };
+
+  const handleDeleteClick = (admin: AdminUser) => {
+    setDeleteConfirm({ adminId: admin.id, username: admin.username });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return;
+    
+    try {
+      setDeleting(true);
+      setError('');
+      setSuccessMessage('');
+      
+      await adminAPI.deleteAdmin(deleteConfirm.adminId);
+      setSuccessMessage(`מנהל ${deleteConfirm.username} הושבת בהצלחה`);
+      setDeleteConfirm(null);
+      await loadAdmins();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirm(null);
   };
 
   const onSubmit = async (data: CreateAdminForm) => {
@@ -235,22 +276,52 @@ const ManageAdmins: React.FC = () => {
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border"
                 >
                   <div className="flex items-center space-x-reverse space-x-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Shield className="w-6 h-6 text-blue-600" />
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                      admin.role === 'SYSTEM_ADMIN' ? 'bg-red-100' : 'bg-blue-100'
+                    }`}>
+                      <Shield className={`w-6 h-6 ${
+                        admin.role === 'SYSTEM_ADMIN' ? 'text-red-600' : 'text-blue-600'
+                      }`} />
                     </div>
                     <div>
-                      <h3 className="font-medium text-lg text-gray-900">
-                        {admin.username}
-                      </h3>
+                      <div className="flex items-center space-x-reverse space-x-2">
+                        <h3 className="font-medium text-lg text-gray-900">
+                          {admin.username}
+                        </h3>
+                        {admin.role === 'SYSTEM_ADMIN' && (
+                          <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+                            מנהל מערכת
+                          </span>
+                        )}
+                        {currentUser?.id === admin.id && (
+                          <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                            אתה
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-600">
-                        מזהה: #{admin.id}
+                        מזהה: #{admin.id} • {admin.role === 'SYSTEM_ADMIN' ? 'מנהל מערכת' : 'מתנדב'}
                       </p>
                     </div>
                   </div>
 
-                  <div className="text-left text-sm text-gray-600">
-                    <div>נוצר: {formatDateTime(admin.created_at)}</div>
-                    <div>עודכן: {formatDateTime(admin.updated_at)}</div>
+                  <div className="flex items-center space-x-reverse space-x-4">
+                    <div className="text-left text-sm text-gray-600">
+                      <div>נוצר: {formatDateTime(admin.created_at)}</div>
+                      <div>עודכן: {formatDateTime(admin.updated_at)}</div>
+                    </div>
+                    
+                    {/* Show delete button only for SYSTEM_ADMIN users and not for current user */}
+                    {currentUser?.role === 'SYSTEM_ADMIN' && currentUser.id !== admin.id && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteClick(admin)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -258,6 +329,49 @@ const ManageAdmins: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center space-x-reverse space-x-2 mb-4">
+              <AlertCircle className="w-6 h-6 text-red-600" />
+              <h3 className="text-lg font-semibold text-gray-900">אישור מחיקת מנהל</h3>
+            </div>
+            <p className="text-gray-700 mb-6">
+              האם אתה בטוח שברצונך להשבית את המנהל <strong>{deleteConfirm.username}</strong>?
+              <br />
+              פעולה זו תשבית את החשבון ולא ניתן יהיה לבטלה.
+            </p>
+            <div className="flex justify-end space-x-reverse space-x-3">
+              <Button
+                variant="outline"
+                onClick={handleDeleteCancel}
+                disabled={deleting}
+              >
+                בטל
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <div className="flex items-center space-x-reverse space-x-2">
+                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    <span>משבית...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-reverse space-x-2">
+                    <Trash2 className="w-4 h-4" />
+                    <span>השבת מנהל</span>
+                  </div>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Instructions */}
       <Card className="mt-6">
@@ -280,7 +394,11 @@ const ManageAdmins: React.FC = () => {
             </div>
             <div className="flex items-start space-x-reverse space-x-2">
               <span className="w-2 h-2 bg-orange-500 rounded-full mt-2"></span>
-              <span>כרגע אין אפשרות למחוק מנהלים דרך הממשק - פנה למפתח המערכת</span>
+              <span>רק מנהלי מערכת יכולים להשבית מנהלים אחרים (לא ניתן להשבית את עצמך)</span>
+            </div>
+            <div className="flex items-start space-x-reverse space-x-2">
+              <span className="w-2 h-2 bg-orange-500 rounded-full mt-2"></span>
+              <span>השבתת מנהל תמנע ממנו להתחבר למערכת אך לא תמחק את ההיסטוריה שלו</span>
             </div>
           </div>
         </CardContent>

@@ -19,7 +19,7 @@ router.post('/login', validateBody(schemas.adminLogin), asyncHandler(async (req,
     where: { username }
   });
 
-  if (!admin) {
+  if (!admin || !(admin as any).is_active) {
     return res.status(401).json({
       success: false,
       error: 'Invalid credentials',
@@ -40,13 +40,15 @@ router.post('/login', validateBody(schemas.adminLogin), asyncHandler(async (req,
   // Set session
   req.session.userId = admin.id;
   req.session.username = admin.username;
+  req.session.role = (admin as any).role;
 
   res.json({
     success: true,
     message: 'התחברת בהצלחה',
     data: {
       id: admin.id,
-      username: admin.username
+      username: admin.username,
+      role: (admin as any).role
     }
   });
 }));
@@ -79,13 +81,7 @@ router.post('/logout', asyncHandler(async (req, res) => {
  */
 router.get('/me', requireAuth, asyncHandler(async (req, res) => {
   const admin = await prisma.adminUser.findUnique({
-    where: { id: req.session.userId },
-    select: {
-      id: true,
-      username: true,
-      created_at: true,
-      updated_at: true
-    }
+    where: { id: req.session.userId }
   });
 
   if (!admin) {
@@ -98,7 +94,13 @@ router.get('/me', requireAuth, asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    data: admin
+    data: {
+      id: admin.id,
+      username: admin.username,
+      role: (admin as any).role,
+      created_at: admin.created_at,
+      updated_at: admin.updated_at
+    }
   });
 }));
 
@@ -114,7 +116,8 @@ router.get('/status', asyncHandler(async (req, res) => {
     authenticated: isAuthenticated,
     user: isAuthenticated ? {
       id: req.session.userId,
-      username: req.session.username
+      username: req.session.username,
+      role: req.session.role
     } : null
   });
 }));
