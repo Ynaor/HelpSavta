@@ -160,7 +160,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
                 <div className="flex items-center space-x-reverse space-x-2 text-gray-600 text-sm md:text-base">
                   <Mail className="w-3 h-3 md:w-4 md:h-4" />
-                  <span>help@techhelp4u.org.il</span>
+                  <span>help@Help-Savta.org.il</span>
                 </div>
               </div>
             </div>

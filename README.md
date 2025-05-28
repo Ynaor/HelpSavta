@@ -1,4 +1,4 @@
-# עזרה טכנית בהתנדבות - TechHelp4U (HelpSavta)
+# עזרה טכנית בהתנדבות - Help-Savta (HelpSavta)
 
 ## Project Overview / סקירת הפרויקט
 

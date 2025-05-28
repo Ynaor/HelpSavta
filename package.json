@@ -1,5 +1,5 @@
 {
-  "name": "techhelp4u",
+  "name": "Help-Savta",
   "version": "1.0.0",
   "description": "Technical Help Volunteer Platform - עזרה טכנית בהתנדבות",
   "main": "index.js",
@@ -52,12 +52,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/techhelp4u.git"
+    "url": "https://github.com/your-username/Help-Savta.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/techhelp4u/issues"
+    "url": "https://github.com/your-username/Help-Savta/issues"
   },
-  "homepage": "https://github.com/your-username/techhelp4u#readme",
+  "homepage": "https://github.com/your-username/Help-Savta#readme",
   "workspaces": [
     "backend",
     "frontend"

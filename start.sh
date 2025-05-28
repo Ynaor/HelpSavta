@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# TechHelp4U Development Startup Script
+# Help-Savta Development Startup Script
 # עזרה טכנית בהתנדבות - סקריפט הפעלה לפיתוח
 
-echo "🚀 Starting TechHelp4U Development Environment"
+echo "🚀 Starting Help-Savta Development Environment"
 echo "עזרה טכנית בהתנדבות - הפעלת סביבת פיתוח"
 echo "=================================================="
 

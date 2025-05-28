@@ -1,8 +1,8 @@
-# Deployment Guide / מדריך פריסה - TechHelp4U
+# Deployment Guide / מדריך פריסה - Help-Savta
 
 ## Production Deployment / פריסה לייצור
 
-This guide covers deploying the TechHelp4U application to production environments.
+This guide covers deploying the application to production environments.
 
 ### Prerequisites / דרישות מקדימות
 
@@ -39,8 +39,8 @@ sudo apt install postgresql postgresql-contrib -y
 
 ```bash
 # Clone repository
-git clone <your-repo-url> /opt/techhelp4u
-cd /opt/techhelp4u
+git clone <your-repo-url> /opt/Help-Savta
+cd /opt/Help-Savta
 
 # Install dependencies
 npm install
@@ -70,10 +70,10 @@ npm run db:seed
 ##### PostgreSQL (Recommended for production)
 ```bash
 # Create database
-sudo -u postgres createdb techhelp4u
+sudo -u postgres createdb Help-Savta
 
 # Update .env file
-DATABASE_URL="postgresql://username:password@localhost:5432/techhelp4u"
+DATABASE_URL="postgresql://username:password@localhost:5432/Help-Savta"
 
 # Run migrations
 cd backend
@@ -96,7 +96,7 @@ Create `ecosystem.config.js`:
 ```javascript
 module.exports = {
   apps: [{
-    name: 'techhelp4u-backend',
+    name: 'Help-Savta-backend',
     script: './dist/server.js',
     cwd: './backend',
     instances: 'max',
@@ -122,7 +122,7 @@ pm2 startup
 
 #### 6. Nginx Configuration / תצורת Nginx
 
-Create `/etc/nginx/sites-available/techhelp4u`:
+Create `/etc/nginx/sites-available/Help-Savta`:
 
 ```nginx
 server {
@@ -151,7 +151,7 @@ server {
 
     # Frontend static files
     location / {
-        root /opt/techhelp4u/frontend/dist;
+        root /opt/Help-Savta/frontend/dist;
         try_files $uri $uri/ /index.html;
         
         # Cache static assets
@@ -185,7 +185,7 @@ server {
 
 Enable the site:
 ```bash
-sudo ln -s /etc/nginx/sites-available/techhelp4u /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/Help-Savta /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -268,7 +268,7 @@ services:
   database:
     image: postgres:15
     environment:
-      POSTGRES_DB: techhelp4u
+      POSTGRES_DB: Help-Savta
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
@@ -279,7 +279,7 @@ services:
     build: ./backend
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@database:5432/techhelp4u
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@database:5432/Help-Savta
       SESSION_SECRET: ${SESSION_SECRET}
       FRONTEND_URL: https://your-domain.com
     depends_on:
@@ -313,7 +313,7 @@ web: cd backend && npm start
 Create `package.json` in root:
 ```json
 {
-  "name": "techhelp4u",
+  "name": "Help-Savta",
   "scripts": {
     "build": "cd backend && npm run build && cd ../frontend && npm run build",
     "start": "cd backend && npm start",
@@ -336,12 +336,12 @@ git push heroku main
 Create `.do/app.yaml`:
 
 ```yaml
-name: techhelp4u
+name: Help-Savta
 services:
 - name: backend
   source_dir: backend
   github:
-    repo: your-username/techhelp4u
+    repo: your-username/Help-Savta
     branch: main
   run_command: npm start
   environment_slug: node-js
@@ -356,7 +356,7 @@ services:
 - name: frontend
   source_dir: frontend
   github:
-    repo: your-username/techhelp4u
+    repo: your-username/Help-Savta
     branch: main
   build_command: npm run build
   environment_slug: node-js
@@ -455,7 +455,7 @@ pm2 monit
 ### Database Backup
 ```bash
 # PostgreSQL backup
-pg_dump -h localhost -U username -d techhelp4u > backup_$(date +%Y%m%d_%H%M%S).sql
+pg_dump -h localhost -U username -d Help-Savta > backup_$(date +%Y%m%d_%H%M%S).sql
 
 # SQLite backup
 cp backend/dev.db backup_$(date +%Y%m%d_%H%M%S).db
@@ -473,10 +473,10 @@ BACKUP_DIR="/opt/backups"
 mkdir -p $BACKUP_DIR
 
 # Database backup
-pg_dump -h localhost -U techhelp4u -d techhelp4u > $BACKUP_DIR/db_$DATE.sql
+pg_dump -h localhost -U Help-Savta -d Help-Savta > $BACKUP_DIR/db_$DATE.sql
 
 # Application backup
-tar -czf $BACKUP_DIR/app_$DATE.tar.gz /opt/techhelp4u
+tar -czf $BACKUP_DIR/app_$DATE.tar.gz /opt/Help-Savta
 
 # Keep only last 7 days of backups
 find $BACKUP_DIR -name "*.sql" -mtime +7 -delete
@@ -522,10 +522,10 @@ free -h
 pm2 status
 
 # Restart application
-pm2 restart techhelp4u-backend
+pm2 restart Help-Savta-backend
 
 # View application logs
-pm2 logs techhelp4u-backend
+pm2 logs Help-Savta-backend
 
 # Check Nginx status
 sudo systemctl status nginx
@@ -540,10 +540,10 @@ sudo nginx -t
 
 ```bash
 # 1. Backup current version
-sudo tar -czf /opt/backups/app_before_update_$(date +%Y%m%d).tar.gz /opt/techhelp4u
+sudo tar -czf /opt/backups/app_before_update_$(date +%Y%m%d).tar.gz /opt/Help-Savta
 
 # 2. Pull latest changes
-cd /opt/techhelp4u
+cd /opt/Help-Savta
 git pull origin main
 
 # 3. Update dependencies
@@ -557,7 +557,7 @@ cd backend
 npm run db:push
 
 # 5. Restart application
-pm2 restart techhelp4u-backend
+pm2 restart Help-Savta-backend
 
 # 6. Test the application
 curl https://your-domain.com/health
