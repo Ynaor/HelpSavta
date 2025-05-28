@@ -108,8 +108,8 @@ export interface DashboardStats {
       booked: number;
     };
   };
-  recentRequests: Partial<TechRequest>[];
-  urgentRequests: Partial<TechRequest>[];
+  recentRequests: TechRequest[];
+  urgentRequests: TechRequest[];
 }
 
 // Hebrew labels for status and urgency
