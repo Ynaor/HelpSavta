@@ -428,9 +428,10 @@ router.post('/requests/:id/take', validateBody(schemas.adminTakeRequest), asyncH
   }
 
   try {
-    // Update request to assign current admin
+    // Update request to assign current admin and set status to in_progress
     const updateData: any = {
-      assigned_admin_id: adminId
+      assigned_admin_id: adminId,
+      status: 'in_progress'
     };
     
     // Add notes if provided
@@ -453,6 +454,24 @@ router.post('/requests/:id/take', validateBody(schemas.adminTakeRequest), asyncH
         }
       }
     });
+
+    // Send status update email notification (don't let email failure affect assignment)
+    try {
+      if (existingRequest.email && existingRequest.full_name) {
+        await emailService.sendStatusUpdateEmail(
+          existingRequest.email,
+          existingRequest.full_name,
+          requestId.toString(),
+          'in_progress'
+        );
+        console.log(`📧 Status update email sent for request #${requestId}`);
+      } else {
+        console.log(`📧 Skipping email for request #${requestId} - missing email or name`);
+      }
+    } catch (emailError) {
+      console.error('Failed to send status update email:', emailError);
+      // Continue with response - email failure should not affect assignment
+    }
 
     res.json({
       success: true,
