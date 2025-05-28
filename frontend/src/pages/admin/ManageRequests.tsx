@@ -379,6 +379,7 @@ const ManageRequests: React.FC = () => {
                 <Phone className="w-4 h-4" />
                 {renderEditableField(request, 'phone', 'טלפון')}
               </div>
+              {renderEditableField(request, 'email', 'כתובת דוא"ל')}
               <div className="flex items-start space-x-reverse space-x-2">
                 <MapPin className="w-4 h-4 mt-1" />
                 {renderEditableField(request, 'address', 'כתובת')}
@@ -504,7 +505,7 @@ const ManageRequests: React.FC = () => {
               <label className="block text-sm font-medium mb-2">חיפוש</label>
               <Input
                 type="text"
-                placeholder="חפש לפי שם, טלפון או תיאור..."
+                placeholder="חפש לפי שם, טלפון, דוא&quot;ל או תיאור..."
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                 dir={getTextDirection(filters.search)}
@@ -564,11 +565,17 @@ const ManageRequests: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
                       <div className="flex items-center space-x-reverse space-x-2">
                         <Phone className="w-4 h-4" />
                         <a href={`tel:${request.phone}`} className="hover:text-blue-600">
                           {formatPhoneNumber(request.phone)}
+                        </a>
+                      </div>
+                      <div className="flex items-center space-x-reverse space-x-2">
+                        <span>📧</span>
+                        <a href={`mailto:${request.email}`} className="hover:text-blue-600 truncate">
+                          {request.email}
                         </a>
                       </div>
                       <div className="flex items-center space-x-reverse space-x-2">

@@ -77,6 +77,7 @@ const RequestHelp: React.FC = () => {
         console.log('Creating request with data:', {
           full_name: data.full_name,
           phone: data.phone,
+          email: data.email,
           address: data.address,
           problem_description: data.problem_description,
           urgency_level: data.urgency_level,
@@ -87,6 +88,7 @@ const RequestHelp: React.FC = () => {
         const request = await requestsAPI.create({
           full_name: data.full_name,
           phone: data.phone,
+          email: data.email,
           address: data.address,
           problem_description: data.problem_description,
           urgency_level: data.urgency_level,
@@ -265,6 +267,25 @@ const RequestHelp: React.FC = () => {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium mb-2">כתובת דוא"ל *</label>
+                  <Input
+                    {...register('email', {
+                      required: 'כתובת דוא"ל היא שדה חובה',
+                      pattern: {
+                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                        message: 'כתובת דוא"ל לא תקינה'
+                      }
+                    })}
+                    type="email"
+                    placeholder="your.email@example.com"
+                    className={errors.email ? 'border-red-500' : ''}
+                  />
+                  {errors.email && (
+                    <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+                  )}
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium mb-2">כתובת מלאה *</label>
                   <Input
                     {...register('address', { required: 'כתובת היא שדה חובה' })}
@@ -365,6 +386,10 @@ const RequestHelp: React.FC = () => {
                     <div className="flex">
                       <span className="font-medium w-24">טלפון:</span>
                       <span>{watch('phone')}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="font-medium w-24">דוא"ל:</span>
+                      <span>{watch('email')}</span>
                     </div>
                     <div className="flex">
                       <span className="font-medium w-24">כתובת:</span>

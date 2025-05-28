@@ -24,7 +24,7 @@ import { Select } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
 import { DashboardStats, STATUS_LABELS, URGENCY_LABELS, TechRequest, AdminRequestUpdateForm } from '../../types';
 import { adminAPI, requestsAPI } from '../../services/api';
-import { formatDateTime, getErrorMessage, formatPhoneNumber } from '../../lib/utils';
+import { formatDateTime, getErrorMessage } from '../../lib/utils';
 
 // Request Details Modal Component
 const RequestDetailsModal = ({ request, onClose, onUpdate }: {
@@ -335,6 +335,7 @@ const RequestDetailsModal = ({ request, onClose, onUpdate }: {
                 <Phone className="w-4 h-4" />
                 {renderEditableField('phone', 'טלפון')}
               </div>
+              {renderEditableField('email', 'כתובת דוא"ל')}
               <div className="flex items-start space-x-reverse space-x-2">
                 <MapPin className="w-4 h-4 mt-1" />
                 {renderEditableField('address', 'כתובת')}
@@ -609,6 +610,7 @@ const AdminDashboard: React.FC = () => {
                             id: request.id!,
                             full_name: request.full_name || '',
                             phone: request.phone || '',
+                            email: request.email || '',
                             address: request.address || '',
                             problem_description: request.problem_description || '',
                             urgency_level: request.urgency_level || 'medium',
@@ -683,6 +685,7 @@ const AdminDashboard: React.FC = () => {
                           id: request.id!,
                           full_name: request.full_name || '',
                           phone: request.phone || '',
+                          email: request.email || '',
                           address: request.address || '',
                           problem_description: request.problem_description || '',
                           urgency_level: request.urgency_level || 'medium',

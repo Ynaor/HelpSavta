@@ -15,6 +15,7 @@ model TechRequest {
   id                  Int       @id @default(autoincrement())
   full_name          String    // שם מלא של המבקש
   phone              String    // מספר טלפון
+  email              String    // כתובת דוא"ל
   address            String    // כתובת מלאה
   problem_description String   // תיאור הבעיה הטכנית
   urgency_level      String    @default("medium") // רמת דחיפות: low, medium, high, urgent

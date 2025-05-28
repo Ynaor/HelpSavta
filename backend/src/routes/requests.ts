@@ -195,7 +195,7 @@ router.put('/:id', validateBody(schemas.updateRequestStatus), asyncHandler(async
 
   // Store previous status for email logic
   const previousStatus = existingRequest.status;
-  const currentStatus = req.body.status || previousStatus;
+  const newStatus = req.body.status || previousStatus;
 
   const updatedRequest = await prisma.techRequest.update({
     where: { id: requestId },
@@ -205,7 +205,24 @@ router.put('/:id', validateBody(schemas.updateRequestStatus), asyncHandler(async
     }
   });
 
-  // Email trigger logic for scheduled status removed - no longer using scheduled status
+  // Send email notification when status changes from "pending" to "in_progress"
+  if (previousStatus === 'pending' && newStatus === 'in_progress') {
+    try {
+      // Access email field with type assertion (database path was corrected in .env)
+      const requestWithEmail = existingRequest as typeof existingRequest & { email: string };
+      
+      await emailService.sendStatusUpdateEmail(
+        requestWithEmail.email,
+        requestWithEmail.full_name,
+        requestId.toString(),
+        newStatus
+      );
+      console.log(`📧 Status update email triggered for request #${requestId}`);
+    } catch (error) {
+      // Log error but don't fail the status update
+      console.error(`❌ Failed to send status update email for request #${requestId}:`, error);
+    }
+  }
 
   res.json({
     success: true,

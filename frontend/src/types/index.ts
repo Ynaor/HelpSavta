@@ -4,6 +4,7 @@ export interface TechRequest {
   id: number;
   full_name: string;
   phone: string;
+  email: string;
   address: string;
   problem_description: string;
   urgency_level: 'low' | 'medium' | 'high' | 'urgent';
@@ -67,6 +68,7 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
 export interface CreateTechRequestForm {
   full_name: string;
   phone: string;
+  email: string;
   address: string;
   problem_description: string;
   urgency_level: 'low' | 'medium' | 'high' | 'urgent';
@@ -135,6 +137,7 @@ export interface CreateAdminForm {
 export interface AdminRequestUpdateForm {
   full_name?: string;
   phone?: string;
+  email?: string;
   address?: string;
   problem_description?: string;
   urgency_level?: 'low' | 'medium' | 'high' | 'urgent';

@@ -43,6 +43,10 @@ export const schemas = {
       'string.max': 'שם חייב להכיל עד 100 תווים',
       'any.required': 'שם מלא הוא שדה חובה'
     }),
+    email: Joi.string().email().required().messages({
+      'string.email': 'כתובת אימייל לא תקינה',
+      'any.required': 'כתובת אימייל היא שדה חובה'
+    }),
     phone: Joi.string().pattern(/^0[2-9]\d{7,8}$/).required().messages({
       'string.pattern.base': 'מספר טלפון לא תקין (צריך להתחיל ב-0 ולהכיל 9-10 ספרות)',
       'any.required': 'מספר טלפון הוא שדה חובה'
