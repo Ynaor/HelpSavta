@@ -161,7 +161,10 @@ router.get('/:id', asyncHandler(async (req, res) => {
  */
 router.post('/', validateBody(schemas.techRequest), asyncHandler(async (req, res) => {
   const request = await prisma.techRequest.create({
-    data: req.body
+    data: {
+      ...req.body,
+      status: 'pending' // Explicitly set status to 'pending' for new requests
+    }
   });
 
   res.status(201).json({

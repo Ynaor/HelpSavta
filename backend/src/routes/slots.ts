@@ -159,7 +159,6 @@ router.put('/:id/book', asyncHandler(async (req, res) => {
       where: { id: request_id },
       data: {
         booked_slot_id: slotId,
-        status: 'scheduled',
         scheduled_date: slot.date,
         scheduled_time: slot.start_time
       }
