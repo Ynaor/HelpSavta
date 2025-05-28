@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Eye, Trash2, Phone, MapPin, Clock, AlertCircle, Filter, UserCheck, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Eye, AlertCircle, Filter, Clock, Phone } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Select } from '../../components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { TechRequest, STATUS_LABELS, URGENCY_LABELS, AdminRequestUpdateForm } from '../../types';
-import { adminAPI, requestsAPI } from '../../services/api';
+import { TechRequest, STATUS_LABELS, URGENCY_LABELS } from '../../types';
+import { adminAPI } from '../../services/api';
 import { formatDateTime, formatPhoneNumber, getErrorMessage } from '../../lib/utils';
 import RequestDetailsModal from '../../components/requests/RequestDetailsModal';
 
@@ -16,17 +16,11 @@ const ManageRequests: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<TechRequest | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const [editingRequestId, setEditingRequestId] = useState<number | null>(null);
-  const [editFormData, setEditFormData] = useState<AdminRequestUpdateForm>({});
-  const [takeRequestLoading, setTakeRequestLoading] = useState<number | null>(null);
   const [filters, setFilters] = useState({
     status: '',
     urgency_level: '',
     search: ''
   });
-  const editingInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
-  const cursorPositionRef = useRef<number>(0);
 
   useEffect(() => {
     loadRequests();
@@ -64,244 +58,6 @@ const ManageRequests: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleStatusUpdate = async (requestId: number, newStatus: TechRequest['status']) => {
-    try {
-      await requestsAPI.update(requestId, { status: newStatus });
-      await loadRequests();
-      setSelectedRequest(null);
-      setShowDetails(false);
-    } catch (err) {
-      setError(getErrorMessage(err));
-    }
-  };
-
-  const handleDeleteRequest = async (requestId: number) => {
-    if (!window.confirm('האם אתה בטוח שברצונך למחוק את הבקשה?')) {
-      return;
-    }
-
-    try {
-      await requestsAPI.delete(requestId);
-      await loadRequests();
-      setSelectedRequest(null);
-      setShowDetails(false);
-      setSuccess('בקשה נמחקה בהצלחה');
-    } catch (err) {
-      setError(getErrorMessage(err));
-    }
-  };
-
-  const handleTakeRequest = async (requestId: number) => {
-    if (!window.confirm('האם אתה בטוח שברצונך לקחת את הבקשה?')) {
-      return;
-    }
-
-    try {
-      setTakeRequestLoading(requestId);
-      await adminAPI.takeRequest(requestId);
-      await loadRequests();
-      setSuccess('בקשה נלקחה בהצלחה');
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setTakeRequestLoading(null);
-    }
-  };
-
-  const handleStartEdit = useCallback((requestId: number, field: string, currentValue: any) => {
-    setEditingRequestId(requestId);
-    setEditingField(field);
-    setEditFormData({ [field]: currentValue || '' });
-  }, []);
-
-  const handleCancelEdit = useCallback(() => {
-    setEditingRequestId(null);
-    setEditingField(null);
-    setEditFormData({});
-  }, []);
-
-  const handleSaveEdit = useCallback(async () => {
-    if (!editingRequestId || !editingField) return;
-
-    // Get the current value from editFormData state
-    const currentValue = editFormData[editingField as keyof AdminRequestUpdateForm] || '';
-    const dataToSave = { [editingField]: currentValue };
-
-    try {
-      const updatedRequest = await adminAPI.updateRequestAsAdmin(editingRequestId, dataToSave);
-      
-      // Update local state with the response data instead of reloading all requests
-      setRequests(prevRequests =>
-        prevRequests.map(req =>
-          req.id === editingRequestId ? { ...req, ...updatedRequest } : req
-        )
-      );
-      
-      // Update selectedRequest if it's the one being edited
-      if (selectedRequest && selectedRequest.id === editingRequestId) {
-        setSelectedRequest({ ...selectedRequest, ...updatedRequest });
-      }
-      
-      handleCancelEdit();
-      setSuccess('שדה עודכן בהצלחה');
-    } catch (err) {
-      console.error('❌ SAVE ERROR:', err);
-      setError(getErrorMessage(err));
-    }
-  }, [editingRequestId, editingField, editFormData, handleCancelEdit, selectedRequest]);
-
-  const handleFieldChange = useCallback((field: keyof AdminRequestUpdateForm, value: string, cursorPos?: number) => {
-    // Store cursor position for restoration after render
-    if (cursorPos !== undefined) {
-      cursorPositionRef.current = cursorPos;
-    }
-    
-    setEditFormData(prev => ({ ...prev, [field]: value }));
-  }, [editFormData]);
-
-  // Effect to restore cursor position after state updates
-  useEffect(() => {
-    if (editingInputRef.current && cursorPositionRef.current !== undefined) {
-      const element = editingInputRef.current;
-      const position = cursorPositionRef.current;
-      
-      // Use setTimeout to ensure DOM has updated
-      setTimeout(() => {
-        element.setSelectionRange(position, position);
-      }, 0);
-    }
-  }, [editFormData]);
-
-  // Helper function to detect Hebrew text
-  const containsHebrew = (text: string): boolean => {
-    const hebrewRegex = /[\u0590-\u05FF]/;
-    return hebrewRegex.test(text);
-  };
-
-  // Helper function to get text direction based on content
-  const getTextDirection = (text: string): string => {
-    if (!text) return 'auto';
-    return containsHebrew(text) ? 'rtl' : 'ltr';
-  };
-
-  const renderEditableField = (request: TechRequest, field: keyof AdminRequestUpdateForm, label: string, type: 'text' | 'textarea' | 'select' = 'text') => {
-    const isEditing = editingRequestId === request.id && editingField === field;
-    const value = request[field as keyof TechRequest] as string;
-
-    if (isEditing) {
-      // Use stable key that doesn't change during editing
-      const inputKey = `edit-${field}`;
-      const currentValue = editFormData[field] as string || '';
-      const currentDirection = getTextDirection(currentValue);
-      
-      
-      if (type === 'textarea') {
-        return (
-          <div className="flex items-start space-x-reverse space-x-2">
-            <Textarea
-              key={inputKey}
-              value={currentValue}
-              ref={editingInputRef as React.RefObject<HTMLTextAreaElement>}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                const cursorPos = e.target.selectionStart;
-                handleFieldChange(field, newValue, cursorPos || 0);
-              }}
-              className="flex-1"
-              rows={3}
-              autoFocus
-              dir={currentDirection}
-              style={{ textAlign: containsHebrew(currentValue) ? 'right' : 'left' }}
-            />
-            <div className="flex space-x-reverse space-x-1">
-              <Button size="sm" onClick={handleSaveEdit}>
-                <Save className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleCancelEdit}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        );
-      } else if (type === 'select' && field === 'urgency_level') {
-        return (
-          <div className="flex items-center space-x-reverse space-x-2">
-            <Select
-              key={inputKey}
-              value={(editFormData[field] as string) || ''}
-              onChange={(e) => handleFieldChange(field, e.target.value)}
-              className="flex-1"
-            >
-              <option value="low">{URGENCY_LABELS.low}</option>
-              <option value="medium">{URGENCY_LABELS.medium}</option>
-              <option value="high">{URGENCY_LABELS.high}</option>
-              <option value="urgent">{URGENCY_LABELS.urgent}</option>
-            </Select>
-            <div className="flex space-x-reverse space-x-1">
-              <Button size="sm" onClick={handleSaveEdit}>
-                <Save className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleCancelEdit}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        );
-      } else {
-        return (
-          <div className="flex items-center space-x-reverse space-x-2">
-            <Input
-              key={inputKey}
-              type="text"
-              value={currentValue}
-              ref={editingInputRef as React.RefObject<HTMLInputElement>}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                const cursorPos = e.target.selectionStart;
-                handleFieldChange(field, newValue, cursorPos || 0);
-              }}
-              className="flex-1"
-              autoFocus
-              dir={currentDirection}
-              style={{ textAlign: containsHebrew(currentValue) ? 'right' : 'left' }}
-            />
-            <div className="flex space-x-reverse space-x-1">
-              <Button size="sm" onClick={handleSaveEdit}>
-                <Save className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleCancelEdit}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        );
-      }
-    }
-
-    return (
-      <div className="flex items-start justify-between group">
-        <div className="flex-1">
-          <span className="font-medium">{label}:</span>{' '}
-          {field === 'urgency_level' ? (
-            <span className={getUrgencyBadgeClass(value as TechRequest['urgency_level'])}>
-              {URGENCY_LABELS[value as TechRequest['urgency_level']]}
-            </span>
-          ) : (
-            <span>{value || 'לא צוין'}</span>
-          )}
-        </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={() => handleStartEdit(request.id, field, value)}
-        >
-          <Edit2 className="w-4 h-4" />
-        </Button>
-      </div>
-    );
   };
 
   const getStatusBadgeClass = (status: TechRequest['status']) => {
@@ -378,8 +134,7 @@ const ManageRequests: React.FC = () => {
                 placeholder="חפש לפי שם, טלפון, דוא&quot;ל או תיאור..."
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                dir={getTextDirection(filters.search)}
-                style={{ textAlign: containsHebrew(filters.search) ? 'right' : 'left' }}
+                style={{ textAlign: filters.search.match(/[\u0590-\u05FF]/) ? 'right' : 'left' }}
               />
             </div>
           </div>
@@ -397,7 +152,7 @@ const ManageRequests: React.FC = () => {
       {/* Success Display */}
       {success && (
         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center space-x-reverse space-x-2 text-green-700">
-          <UserCheck className="w-5 h-5" />
+          <span className="text-green-600">✓</span>
           <span>{success}</span>
         </div>
       )}
@@ -455,12 +210,12 @@ const ManageRequests: React.FC = () => {
                       <div className="flex items-center space-x-reverse space-x-2">
                         {request.assigned_admin ? (
                           <div className="flex items-center space-x-reverse space-x-1 text-green-600">
-                            <UserCheck className="w-4 h-4" />
+                            {/* <UserCheck className="w-4 h-4" /> */}
                             <span>מוקצה ל: {request.assigned_admin.username}</span>
                           </div>
                         ) : (
                           <div className="flex items-center space-x-reverse space-x-1 text-orange-600">
-                            <User className="w-4 h-4" />
+                            {/* <User className="w-4 h-4" /> */}
                             <span>לא מוקצה</span>
                           </div>
                         )}
@@ -488,15 +243,12 @@ const ManageRequests: React.FC = () => {
                       <Button
                         variant="default"
                         size="sm"
-                        onClick={() => handleTakeRequest(request.id)}
-                        disabled={takeRequestLoading === request.id}
+                        onClick={() => {
+                          setSelectedRequest(request);
+                          setShowDetails(true);
+                        }}
                       >
-                        {takeRequestLoading === request.id ? (
-                          <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full ml-1" />
-                        ) : (
-                          <UserCheck className="w-4 h-4 ml-1" />
-                        )}
-                        {takeRequestLoading === request.id ? 'לוקח...' : 'קח בקשה'}
+                        קח בקשה
                       </Button>
                     )}
                   </div>

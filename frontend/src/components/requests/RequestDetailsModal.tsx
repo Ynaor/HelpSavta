@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Textarea } from '../ui/textarea';
 import { TechRequest, STATUS_LABELS, URGENCY_LABELS, AdminRequestUpdateForm } from '../../types';
 import { adminAPI, requestsAPI } from '../../services/api';
-import { formatDateTime, formatPhoneNumber, getErrorMessage } from '../../lib/utils';
+import { formatDateTime, getErrorMessage } from '../../lib/utils';
 
 interface RequestDetailsModalProps {
   request: TechRequest;
