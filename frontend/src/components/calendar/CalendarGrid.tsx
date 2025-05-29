@@ -65,7 +65,6 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
     
     return dayEvents.filter(event => {
       const eventStart = new Date(event.start);
-      const eventEnd = new Date(event.end);
       
       // Check if the event starts in this time slot
       const eventStartHour = eventStart.getHours();
@@ -159,7 +158,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
         ))}
 
         {/* Time slots */}
-        {timeSlots.map((timeSlot, timeIndex) => (
+        {timeSlots.map((timeSlot) => (
           <React.Fragment key={timeSlot}>
             {/* Time label */}
             <div className="bg-gray-50 border-b border-gray-200 p-2 border-l border-gray-200">
