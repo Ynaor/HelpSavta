@@ -12,7 +12,9 @@ import {
   TakeRequestForm,
   ApiResponse,
   PaginatedResponse,
-  DashboardStats
+  DashboardStats,
+  CalendarDataResponse,
+  CalendarQueryParams
 } from '../types';
 
 // Create axios instance with base configuration
@@ -215,6 +217,12 @@ export const adminAPI = {
       slots: AvailableSlot[];
       stats: DashboardStats;
     }>>('/admin/comprehensive-data')),
+
+  // Calendar API
+  getCalendarData: (params: CalendarQueryParams) => {
+    console.log('🌐 [API] Calling calendar API with params:', params);
+    return apiCall(() => api.get<ApiResponse<CalendarDataResponse>>('/admin/calendar-data', { params }));
+  },
 };
 
 export default api;

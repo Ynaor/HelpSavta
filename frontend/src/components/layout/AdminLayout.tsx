@@ -42,6 +42,12 @@ const AdminLayout: React.FC = () => {
       description: 'סקירה כללית'
     },
     {
+      href: '/admin/calendar',
+      icon: Calendar,
+      label: 'לוח שנה',
+      description: 'תצוגת לוח זמנים'
+    },
+    {
       href: '/admin/requests',
       icon: FileText,
       label: 'ניהול בקשות',
@@ -77,8 +83,8 @@ const AdminLayout: React.FC = () => {
       <div className="p-4 md:p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg md:text-xl font-bold text-gray-900">פאנל ניהול</h2>
-            <p className="text-xs md:text-sm text-gray-600">HelpSavta Admin</p>
+            <h2 className="text-base md:text-lg font-bold text-gray-900">פאנל ניהול</h2>
+            <p className="text-xs text-gray-600">HelpSavta Admin</p>
           </div>
           <Button
             variant="ghost"
@@ -182,7 +188,7 @@ const AdminLayout: React.FC = () => {
             >
               <Menu className="w-4 h-4 md:w-5 md:h-5" />
             </Button>
-            <h1 className="text-base md:text-lg font-semibold">פאנל ניהול</h1>
+            <h1 className="text-sm md:text-base font-semibold">פאנל ניהול</h1>
             <div className="w-8 md:w-10" /> {/* Spacer for centering */}
           </div>
         </div>

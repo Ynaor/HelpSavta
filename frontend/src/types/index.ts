@@ -195,3 +195,72 @@ export interface SlotLifecycleNotification {
   message: string;
   timestamp: string;
 }
+
+// Calendar types
+export interface CalendarEvent {
+  id: string;
+  type: 'request' | 'slot';
+  title: string;
+  start: string; // ISO datetime string
+  end: string;   // ISO datetime string
+  status: string;
+  urgencyLevel?: string;
+  assignee?: string;
+  assigneeRole?: string;
+  requestId?: number;
+  slotId?: number;
+  customerName?: string;
+  customerPhone?: string;
+  address?: string;
+  description?: string;
+  notes?: string | null;
+  isBooked?: boolean;
+}
+
+export interface CalendarDataResponse {
+  events: CalendarEvent[];
+  view: string;
+  dateRange: {
+    start: string;
+    end: string;
+  };
+  userRole: 'SYSTEM_ADMIN' | 'VOLUNTEER';
+}
+
+export interface CalendarQueryParams {
+  startDate: string;
+  endDate: string;
+  view?: 'week' | 'month';
+}
+
+// Calendar view types
+export type CalendarView = 'week' | 'month';
+
+// Calendar event colors based on type and status
+export const CALENDAR_EVENT_COLORS = {
+  request: {
+    pending: '#f59e0b',     // amber
+    in_progress: '#3b82f6', // blue
+    completed: '#10b981',   // green
+    cancelled: '#ef4444'    // red
+  },
+  slot: {
+    available: '#6b7280'    // gray
+  }
+} as const;
+
+// Hebrew labels for calendar
+export const CALENDAR_LABELS = {
+  today: 'היום',
+  month: 'חודש',
+  week: 'שבוע',
+  day: 'יום',
+  agenda: 'סדר יום',
+  noEventsInRange: 'אין אירועים בטווח זה',
+  showMore: (count: number) => `+${count} נוספים`,
+  previous: 'קודם',
+  next: 'הבא',
+  yesterday: 'אתמול',
+  tomorrow: 'מחר',
+  allDay: 'כל היום'
+} as const;

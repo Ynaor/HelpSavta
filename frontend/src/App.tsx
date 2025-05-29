@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import RequestHelp from './pages/RequestHelp';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import CalendarView from './pages/admin/CalendarView';
 import ManageRequests from './pages/admin/ManageRequests';
 import ManageSlots from './pages/admin/ManageSlots';
 import ManageNotifications from './pages/admin/ManageNotifications';
@@ -26,6 +27,7 @@ function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="calendar" element={<CalendarView />} />
           <Route path="requests" element={<ManageRequests />} />
           <Route path="slots" element={<ManageSlots />} />
           <Route path="notifications" element={<ManageNotifications />} />
