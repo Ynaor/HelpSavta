@@ -1,0 +1,242 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [ main, staging ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AZURE_WEBAPP_NAME: helpsavta
+  NODE_VERSION: '18.x'
+  BACKEND_PATH: './backend'
+  FRONTEND_PATH: './frontend'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: helpsavta_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies - Backend
+      run: |
+        cd ${{ env.BACKEND_PATH }}
+        npm ci
+
+    - name: Install dependencies - Frontend
+      run: |
+        cd ${{ env.FRONTEND_PATH }}
+        npm ci
+
+    - name: Run ESLint
+      run: |
+        cd ${{ env.BACKEND_PATH }}
+        npm run lint
+        cd ../${{ env.FRONTEND_PATH }}
+        npm run lint
+
+    - name: Run Prettier check
+      run: |
+        cd ${{ env.BACKEND_PATH }}
+        npm run format:check
+        cd ../${{ env.FRONTEND_PATH }}
+        npm run format:check
+
+    - name: Run backend tests
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/helpsavta_test
+        NODE_ENV: test
+      run: |
+        cd ${{ env.BACKEND_PATH }}
+        npx prisma migrate deploy
+        npm test
+
+    - name: Run frontend tests
+      run: |
+        cd ${{ env.FRONTEND_PATH }}
+        npm test
+
+    - name: Security audit
+      run: |
+        cd ${{ env.BACKEND_PATH }}
+        npm audit --audit-level high
+        cd ../${{ env.FRONTEND_PATH }}
+        npm audit --audit-level high
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install and build backend
+      run: |
+        cd ${{ env.BACKEND_PATH }}
+        npm ci
+        npm run build
+
+    - name: Install and build frontend
+      run: |
+        cd ${{ env.FRONTEND_PATH }}
+        npm ci
+        npm run build
+
+    - name: Build Docker images
+      run: |
+        docker build -t ${{ env.AZURE_WEBAPP_NAME }}-backend:${{ github.sha }} ${{ env.BACKEND_PATH }}
+        docker build -t ${{ env.AZURE_WEBAPP_NAME }}-frontend:${{ github.sha }} ${{ env.FRONTEND_PATH }}
+
+    - name: Login to Azure Container Registry
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+
+    - name: Push Docker images
+      run: |
+        docker tag ${{ env.AZURE_WEBAPP_NAME }}-backend:${{ github.sha }} ${{ secrets.REGISTRY_LOGIN_SERVER }}/${{ env.AZURE_WEBAPP_NAME }}-backend:${{ github.sha }}
+        docker tag ${{ env.AZURE_WEBAPP_NAME }}-frontend:${{ github.sha }} ${{ secrets.REGISTRY_LOGIN_SERVER }}/${{ env.AZURE_WEBAPP_NAME }}-frontend:${{ github.sha }}
+        docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/${{ env.AZURE_WEBAPP_NAME }}-backend:${{ github.sha }}
+        docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/${{ env.AZURE_WEBAPP_NAME }}-frontend:${{ github.sha }}
+
+  deploy-staging:
+    if: github.ref == 'refs/heads/staging'
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    environment: staging
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS_STAGING }}
+
+    - name: Deploy infrastructure
+      run: |
+        chmod +x ./scripts/setup-azure.sh
+        ./scripts/setup-azure.sh staging
+
+    - name: Run database migrations
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
+      run: |
+        cd ${{ env.BACKEND_PATH }}
+        npx prisma migrate deploy
+
+    - name: Deploy to Azure Web App (Staging Slot)
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}-staging
+        slot-name: staging
+        images: ${{ secrets.REGISTRY_LOGIN_SERVER }}/${{ env.AZURE_WEBAPP_NAME }}-backend:${{ github.sha }}
+
+    - name: Run smoke tests
+      run: |
+        chmod +x ./scripts/smoke-tests.sh
+        ./scripts/smoke-tests.sh https://${{ env.AZURE_WEBAPP_NAME }}-staging-staging.azurewebsites.net
+
+  deploy-production:
+    if: github.ref == 'refs/heads/main'
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS_PRODUCTION }}
+
+    - name: Deploy infrastructure
+      run: |
+        chmod +x ./scripts/setup-azure.sh
+        ./scripts/setup-azure.sh production
+
+    - name: Run production migration
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION }}
+      run: |
+        chmod +x ./scripts/migrate-production.sh
+        ./scripts/migrate-production.sh
+
+    - name: Deploy to staging slot
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}-production
+        slot-name: staging
+        images: ${{ secrets.REGISTRY_LOGIN_SERVER }}/${{ env.AZURE_WEBAPP_NAME }}-backend:${{ github.sha }}
+
+    - name: Run production smoke tests
+      run: |
+        chmod +x ./scripts/smoke-tests.sh
+        ./scripts/smoke-tests.sh https://${{ env.AZURE_WEBAPP_NAME }}-production-staging.azurewebsites.net
+
+    - name: Swap to production
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          az webapp deployment slot swap \
+            --resource-group helpsavta-production-rg \
+            --name ${{ env.AZURE_WEBAPP_NAME }}-production \
+            --slot staging \
+            --target-slot production
+
+    - name: Post-deployment verification
+      run: |
+        sleep 30
+        ./scripts/smoke-tests.sh https://${{ env.AZURE_WEBAPP_NAME }}-production.azurewebsites.net
+
+  rollback:
+    if: failure() && github.ref == 'refs/heads/main'
+    needs: deploy-production
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS_PRODUCTION }}
+
+    - name: Rollback deployment
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          az webapp deployment slot swap \
+            --resource-group helpsavta-production-rg \
+            --name ${{ env.AZURE_WEBAPP_NAME }}-production \
+            --slot production \
+            --target-slot staging

@@ -97,8 +97,8 @@ This will start:
 - **Admin Panel:** http://localhost:5173/admin/login
 
 ### Default Admin Credentials / פרטי מנהל ברירת מחדל
-- **Username / שם משתמש:** `admin`
-- **Password / סיסמה:** `admin123`
+- **Username / שם משתמש:** `[Configure in backend/.env]`
+- **Password / סיסמה:** `[Configure in backend/.env]`
 
 ⚠️ **Important: Change these credentials before production deployment!**
 
@@ -124,8 +124,10 @@ HelpSavta/
 │   │   └── types/             # TypeScript type definitions
 │   └── package.json
 ├── README.md                    # This file
-├── DEPLOYMENT.md               # Production deployment guide
-├── project_status.md           # Project completion status and metrics
+├── DEPLOYMENT.md               # Comprehensive production deployment guide
+├── MIGRATION_GUIDE.md          # Database migration from SQLite to PostgreSQL
+├── project_status.md           # Current system metrics and status dashboard
+├── road-to-production.md       # Complete production roadmap and progress tracking
 ├── start.sh                    # Development setup script
 ├── test-integration.sh         # Integration testing script
 ├── test-admin-features.sh      # Admin features testing script
@@ -224,19 +226,17 @@ EMAIL_PASS=your-app-password
 ```
 
 ### Production Deployment
-For detailed production deployment instructions including VPS setup, Docker, and cloud platform deployment, see [`DEPLOYMENT.md`](DEPLOYMENT.md).
+For comprehensive production deployment instructions, see:
+- **[`DEPLOYMENT.md`](DEPLOYMENT.md)** - Complete Azure infrastructure setup, CI/CD, and production deployment
+- **[`MIGRATION_GUIDE.md`](MIGRATION_GUIDE.md)** - Database migration from SQLite to PostgreSQL
+- **[`road-to-production.md`](road-to-production.md)** - Complete roadmap with progress tracking
 
-**Quick Production Steps:**
-1. Set up Node.js 18+ on your server
-2. Clone repository and install dependencies
-3. Configure production environment variables
-4. Set up PostgreSQL database (recommended)
-5. Build frontend: `cd frontend && npm run build`
-6. Build backend: `cd backend && npm run build`
-7. Use PM2 for process management
-8. Configure Nginx as reverse proxy
-9. Set up SSL/HTTPS
-10. Configure automated backups
+**Quick Development to Production Path:**
+1. **Database Migration**: Follow [`MIGRATION_GUIDE.md`](MIGRATION_GUIDE.md) to migrate from SQLite to PostgreSQL
+2. **Infrastructure Setup**: Use [`DEPLOYMENT.md`](DEPLOYMENT.md) for Azure infrastructure or other cloud platforms
+3. **Progress Tracking**: Monitor deployment progress with [`road-to-production.md`](road-to-production.md)
+4. **Environment Configuration**: Set production environment variables
+5. **Build & Deploy**: Build applications and deploy to production environment
 
 ## 🧪 Testing / בדיקות
 
@@ -283,9 +283,11 @@ The HelpSavta application is fully functional and ready for production deploymen
 ## 📞 Support / תמיכה
 
 For support, questions, or feature requests:
-- Create an issue in the repository
-- Check the [`DEPLOYMENT.md`](DEPLOYMENT.md) for deployment help
-- Review [`project_status.md`](project_status.md) for current limitations
+- **Issues**: Create an issue in the repository
+- **Deployment Help**: See [`DEPLOYMENT.md`](DEPLOYMENT.md) for comprehensive deployment guidance
+- **Database Migration**: See [`MIGRATION_GUIDE.md`](MIGRATION_GUIDE.md) for PostgreSQL migration
+- **Current Status**: Check [`project_status.md`](project_status.md) for system metrics and known issues
+- **Production Roadmap**: Review [`road-to-production.md`](road-to-production.md) for progress tracking
 
 ## 📄 License / רישיון
 

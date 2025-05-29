@@ -3,8 +3,11 @@ import cors from 'cors';
 import helmet from 'helmet';
 import session from 'express-session';
 import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
+
+// Import configuration
+import { environment } from './config/environment';
+import { createPrismaClient, checkDatabaseConnection } from './config/database.production';
 
 // Import middleware
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
@@ -17,15 +20,13 @@ import authRoutes from './routes/auth';
 import testRoutes from './routes/test';
 import calendarRoutes from './routes/calendar';
 
-// Load environment variables
-dotenv.config();
-
-// Initialize Prisma client
-export const prisma = new PrismaClient();
+// Initialize Prisma client based on environment
+export const prisma = environment.isProduction || environment.isStaging
+  ? createPrismaClient()
+  : new PrismaClient();
 
 // Create Express app
 const app = express();
-const PORT = process.env.PORT || 3001;
 
 // Security middleware
 app.use(helmet({
@@ -40,21 +41,16 @@ app.use(helmet({
 }));
 
 // CORS configuration
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+app.use(cors(environment.security.cors));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'), // limit each IP to 100 requests per windowMs
+  windowMs: environment.security.rateLimit.windowMs,
+  max: environment.security.rateLimit.max,
   message: {
     error: 'Too many requests',
     message: 'יותר מדי בקשות, נסה שוב מאוחר יותר',
-    retryAfter: Math.ceil(parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000') / 1000)
+    retryAfter: Math.ceil(environment.security.rateLimit.windowMs / 1000)
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -63,13 +59,14 @@ app.use('/api/', limiter);
 
 // Session configuration
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
+  secret: environment.session.secret,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    secure: environment.session.secure,
+    httpOnly: environment.session.httpOnly,
+    maxAge: environment.session.maxAge,
+    sameSite: environment.session.sameSite as any
   }
 }));
 
@@ -77,15 +74,32 @@ app.use(session({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    message: 'המערכת פועלת תקין',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
-  });
+// Health check endpoint with database connectivity
+app.get(environment.healthCheck.path, async (req, res) => {
+  try {
+    const dbConnected = await checkDatabaseConnection(prisma);
+    
+    res.json({
+      status: dbConnected ? 'OK' : 'DEGRADED',
+      message: dbConnected ? 'המערכת פועלת תקין' : 'בעיה בחיבור למסד נתונים',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: environment.NODE_ENV,
+      database: {
+        connected: dbConnected,
+        type: environment.isProduction ? 'PostgreSQL' : 'SQLite'
+      },
+      version: '1.0.0'
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'ERROR',
+      message: 'בעיה במערכת',
+      timestamp: new Date().toISOString(),
+      environment: environment.NODE_ENV,
+      error: environment.isDevelopment ? error : 'Internal server error'
+    });
+  }
 });
 
 // API routes
@@ -130,11 +144,24 @@ process.on('SIGTERM', async () => {
 });
 
 // Start server
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌐 Health check: http://localhost:${PORT}/health`);
-  console.log(`📚 API docs: http://localhost:${PORT}/api`);
-  console.log(`🔒 Environment: ${process.env.NODE_ENV || 'development'}`);
+const server = app.listen(environment.server.port, environment.server.host, async () => {
+  console.log(`🚀 Server running on ${environment.server.host}:${environment.server.port}`);
+  console.log(`🌐 Health check: http://localhost:${environment.server.port}${environment.healthCheck.path}`);
+  console.log(`📚 API docs: http://localhost:${environment.server.port}/api`);
+  console.log(`🔒 Environment: ${environment.NODE_ENV}`);
+  console.log(`💾 Database: ${environment.isProduction ? 'PostgreSQL' : 'SQLite'}`);
+  
+  // Check database connection on startup
+  try {
+    const dbConnected = await checkDatabaseConnection(prisma);
+    if (dbConnected) {
+      console.log('✅ Database connection successful');
+    } else {
+      console.error('❌ Database connection failed');
+    }
+  } catch (error) {
+    console.error('❌ Database connection error:', error);
+  }
 });
 
 export default app;

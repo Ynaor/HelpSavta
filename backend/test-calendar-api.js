@@ -5,8 +5,8 @@ const BASE_URL = 'http://localhost:3001/api';
 
 // Test data
 const TEST_ADMIN = {
-  username: 'admin',
-  password: 'admin123'
+  username: 'your-admin-username',
+  password: 'your-admin-password'
 };
 
 // Cookie jar to maintain session
