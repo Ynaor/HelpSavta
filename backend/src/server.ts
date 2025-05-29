@@ -15,6 +15,7 @@ import slotRoutes from './routes/slots';
 import adminRoutes from './routes/admin';
 import authRoutes from './routes/auth';
 import testRoutes from './routes/test';
+import calendarRoutes from './routes/calendar';
 
 // Load environment variables
 dotenv.config();
@@ -93,6 +94,7 @@ app.use('/api/slots', slotRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/test', testRoutes);
+app.use('/api/admin', calendarRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -104,7 +106,8 @@ app.get('/', (req, res) => {
       requests: '/api/requests',
       slots: '/api/slots',
       admin: '/api/admin',
-      auth: '/api/auth'
+      auth: '/api/auth',
+      calendar: '/api/admin/calendar-data'
     }
   });
 });

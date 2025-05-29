@@ -37,8 +37,8 @@ const AdminLogin: React.FC = () => {
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <LogIn className="w-8 h-8 text-orange-600" />
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <LogIn className="w-8 h-8 text-blue-600" />
           </div>
           {/* <CardTitle className="text-2xl">כניסת מנהלים</CardTitle> */}
           <CardDescription>
@@ -126,7 +126,7 @@ const AdminLogin: React.FC = () => {
             <p>משתמש רגיל?</p>
             <button
               onClick={() => navigate('/')}
-              className="text-orange-600 hover:text-orange-500 font-medium"
+              className="text-blue-600 hover:text-blue-500 font-medium"
             >
               חזור לדף הבית
             </button>

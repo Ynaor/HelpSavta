@@ -1,4 +1,4 @@
-# Project Status / סטטוס הפרויקט - HelpSavta (TechHelp4U)
+# Project Status / סטטוס הפרויקט - HelpSavta (Help-Savta)
 
 ## 🎉 Current Completion Status / סטטוס השלמה נוכחי
 

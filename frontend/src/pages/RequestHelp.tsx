@@ -134,13 +134,13 @@ const RequestHelp: React.FC = () => {
 
   if (success) {
     return (
-      <div className="max-w-2xl mx-auto py-16 px-4">
+      <div className="max-w-2xl mx-auto py-8 md:py-16 px-4">
         <Card className="text-center">
           <CardHeader>
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-green-600" />
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+              <Check className="w-6 h-6 md:w-8 md:h-8 text-green-600" />
             </div>
-            <CardTitle className="text-2xl text-green-600">
+            <CardTitle className="text-xl md:text-2xl text-green-600">
               בקשתך נשלחה בהצלחה!
             </CardTitle>
             <CardDescription>
@@ -166,16 +166,16 @@ const RequestHelp: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    <div className="max-w-4xl mx-auto py-4 md:py-8 px-4">
       {/* Progress Bar */}
-      <div className="mb-8">
-        <div className="flex items-center justify-center space-x-reverse space-x-4">
+      <div className="mb-6 md:mb-8">
+        <div className="flex items-center justify-center space-x-reverse space-x-2 md:space-x-4">
           {[1, 2, 3].map((step) => (
             <div key={step} className="flex items-center">
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
+                className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-xs md:text-sm font-medium ${
                   step <= currentStep
-                    ? 'bg-orange-500 text-white'
+                    ? 'bg-blue-500 text-white'
                     : 'bg-gray-200 text-gray-600'
                 }`}
               >
@@ -183,22 +183,22 @@ const RequestHelp: React.FC = () => {
               </div>
               {step < 3 && (
                 <div
-                  className={`w-16 h-1 mx-2 ${
-                    step < currentStep ? 'bg-orange-500' : 'bg-gray-200'
+                  className={`w-8 md:w-16 h-1 mx-1 md:mx-2 ${
+                    step < currentStep ? 'bg-blue-500' : 'bg-gray-200'
                   }`}
                 />
               )}
             </div>
           ))}
         </div>
-        <div className="flex justify-center mt-4 space-x-reverse space-x-8">
-          <span className={`text-sm ${currentStep >= 1 ? 'text-orange-600 font-medium' : 'text-gray-500'}`}>
+        <div className="flex justify-center mt-3 md:mt-4 space-x-reverse space-x-4 md:space-x-8">
+          <span className={`text-xs md:text-sm ${currentStep >= 1 ? 'text-blue-600 font-medium' : 'text-gray-500'}`}>
             פרטים אישיים
           </span>
-          <span className={`text-sm ${currentStep >= 2 ? 'text-orange-600 font-medium' : 'text-gray-500'}`}>
+          <span className={`text-xs md:text-sm ${currentStep >= 2 ? 'text-blue-600 font-medium' : 'text-gray-500'}`}>
             בחירת זמן
           </span>
-          <span className={`text-sm ${currentStep >= 3 ? 'text-orange-600 font-medium' : 'text-gray-500'}`}>
+          <span className={`text-xs md:text-sm ${currentStep >= 3 ? 'text-blue-600 font-medium' : 'text-gray-500'}`}>
             אישור
           </span>
         </div>
@@ -231,7 +231,7 @@ const RequestHelp: React.FC = () => {
             {currentStep === 1 && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">שם מלא *</label>
+                  <label className="block text-sm md:text-base font-medium mb-2">שם מלא *</label>
                   <Input
                     {...register('full_name', { required: 'שם מלא הוא שדה חובה' })}
                     placeholder="הזן את שמך המלא"
@@ -243,7 +243,7 @@ const RequestHelp: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">מספר טלפון *</label>
+                  <label className="block text-sm md:text-base font-medium mb-2">מספר טלפון *</label>
                   <Input
                     {...register('phone', {
                       required: 'מספר טלפון הוא שדה חובה',
@@ -267,7 +267,7 @@ const RequestHelp: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">כתובת דוא"ל *</label>
+                  <label className="block text-sm md:text-base font-medium mb-2">כתובת דוא"ל *</label>
                   <Input
                     {...register('email', {
                       required: 'כתובת דוא"ל היא שדה חובה',
@@ -286,7 +286,7 @@ const RequestHelp: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">כתובת מלאה *</label>
+                  <label className="block text-sm md:text-base font-medium mb-2">כתובת מלאה *</label>
                   <Input
                     {...register('address', { required: 'כתובת היא שדה חובה' })}
                     placeholder="רחוב, מספר בית, עיר"
@@ -298,7 +298,7 @@ const RequestHelp: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">תיאור הבעיה הטכנית *</label>
+                  <label className="block text-sm md:text-base font-medium mb-2">תיאור הבעיה הטכנית *</label>
                   <Textarea
                     {...register('problem_description', { required: 'תיאור הבעיה הוא שדה חובה' })}
                     placeholder="תאר בפירוט את הבעיה הטכנית שבה אתה זקוק לעזרה"
@@ -311,7 +311,7 @@ const RequestHelp: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">רמת דחיפות</label>
+                  <label className="block text-sm md:text-base font-medium mb-2">רמת דחיפות</label>
                   <Select {...register('urgency_level')} defaultValue="medium">
                     <option value="low">{URGENCY_LABELS.low}</option>
                     <option value="medium">{URGENCY_LABELS.medium}</option>
@@ -321,7 +321,7 @@ const RequestHelp: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">הערות נוספות</label>
+                  <label className="block text-sm md:text-base font-medium mb-2">הערות נוספות</label>
                   <Textarea
                     {...register('notes')}
                     placeholder="הערות או בקשות מיוחדות (אופציונלי)"
@@ -336,7 +336,7 @@ const RequestHelp: React.FC = () => {
               <div className="space-y-4">
                 {loading ? (
                   <div className="text-center py-8">
-                    <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full mx-auto"></div>
+                    <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
                     <p className="mt-4 text-gray-600">טוען זמנים זמינים...</p>
                   </div>
                 ) : availableSlots.length === 0 ? (
@@ -354,16 +354,16 @@ const RequestHelp: React.FC = () => {
                             <h3 className="font-medium mb-3 sticky top-0 bg-gray-50 py-2 border-b border-gray-200">
                               {formatDate(date)}
                             </h3>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
                               {slots.map((slot) => (
                                 <button
                                   key={slot.id}
                                   type="button"
                                   onClick={() => handleSlotSelection(slot)}
-                                  className={`p-3 rounded-lg border text-sm transition-colors ${
+                                  className={`p-2 md:p-3 rounded-lg border text-sm md:text-base transition-colors ${
                                     selectedSlot?.id === slot.id
-                                      ? 'border-orange-500 bg-orange-50 text-orange-700'
-                                      : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50'
+                                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                      : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
                                   }`}
                                 >
                                   {slot.start_time} - {slot.end_time}
@@ -377,10 +377,10 @@ const RequestHelp: React.FC = () => {
                     
                     {/* Selected slot indicator - always visible below the scrollable area */}
                     {selectedSlot && (
-                      <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <div className="flex items-center space-x-reverse space-x-2">
-                          <Check className="w-4 h-4 text-orange-600" />
-                          <span className="text-sm font-medium text-orange-700">
+                          <Check className="w-4 h-4 text-blue-600" />
+                          <span className="text-sm font-medium text-blue-700">
                             זמן נבחר: {formatDate(selectedSlot.date)} בשעה {selectedSlot.start_time}-{selectedSlot.end_time}
                           </span>
                         </div>
@@ -394,34 +394,34 @@ const RequestHelp: React.FC = () => {
             {/* Step 3: Confirmation */}
             {currentStep === 3 && (
               <div className="space-y-6">
-                <div className="bg-gray-50 p-6 rounded-lg space-y-4">
-                  <h3 className="font-medium text-lg">סיכום הבקשה</h3>
+                <div className="bg-gray-50 p-4 md:p-6 rounded-lg space-y-4">
+                  <h3 className="font-medium text-base md:text-lg">סיכום הבקשה</h3>
                   
-                  <div className="space-y-3 text-sm">
-                    <div className="flex">
-                      <span className="font-medium w-24">שם:</span>
-                      <span>{watch('full_name')}</span>
+                  <div className="space-y-3 text-xs md:text-sm">
+                    <div className="flex flex-col sm:flex-row">
+                      <span className="font-medium w-full sm:w-24 mb-1 sm:mb-0">שם:</span>
+                      <span className="break-words">{watch('full_name')}</span>
                     </div>
-                    <div className="flex">
-                      <span className="font-medium w-24">טלפון:</span>
-                      <span>{watch('phone')}</span>
+                    <div className="flex flex-col sm:flex-row">
+                      <span className="font-medium w-full sm:w-24 mb-1 sm:mb-0">טלפון:</span>
+                      <span className="break-all">{watch('phone')}</span>
                     </div>
-                    <div className="flex">
-                      <span className="font-medium w-24">דוא"ל:</span>
-                      <span>{watch('email')}</span>
+                    <div className="flex flex-col sm:flex-row">
+                      <span className="font-medium w-full sm:w-24 mb-1 sm:mb-0">דוא"ל:</span>
+                      <span className="break-all">{watch('email')}</span>
                     </div>
-                    <div className="flex">
-                      <span className="font-medium w-24">כתובת:</span>
-                      <span>{watch('address')}</span>
+                    <div className="flex flex-col sm:flex-row">
+                      <span className="font-medium w-full sm:w-24 mb-1 sm:mb-0">כתובת:</span>
+                      <span className="break-words">{watch('address')}</span>
                     </div>
-                    <div className="flex">
-                      <span className="font-medium w-24">דחיפות:</span>
+                    <div className="flex flex-col sm:flex-row">
+                      <span className="font-medium w-full sm:w-24 mb-1 sm:mb-0">דחיפות:</span>
                       <span>{URGENCY_LABELS[watch('urgency_level') as keyof typeof URGENCY_LABELS]}</span>
                     </div>
                     {selectedSlot && (
-                      <div className="flex">
-                        <span className="font-medium w-24">זמן:</span>
-                        <span>{formatDate(selectedSlot.date)} בשעה {selectedSlot.start_time}-{selectedSlot.end_time}</span>
+                      <div className="flex flex-col sm:flex-row">
+                        <span className="font-medium w-full sm:w-24 mb-1 sm:mb-0">זמן:</span>
+                        <span className="break-words">{formatDate(selectedSlot.date)} בשעה {selectedSlot.start_time}-{selectedSlot.end_time}</span>
                       </div>
                     )}
                     <div className="flex flex-col">
@@ -440,13 +440,13 @@ const RequestHelp: React.FC = () => {
             )}
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between pt-6">
+            <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 pt-6">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleStepBack}
                 disabled={currentStep === 1}
-                className="flex items-center space-x-reverse space-x-2"
+                className="flex items-center justify-center space-x-reverse space-x-2 order-2 sm:order-1"
               >
                 <ChevronRight className="w-4 h-4" />
                 <span>הקודם</span>
@@ -455,7 +455,7 @@ const RequestHelp: React.FC = () => {
               <Button
                 type="submit"
                 disabled={loading || (currentStep === 2 && !selectedSlot)}
-                className="flex items-center space-x-reverse space-x-2"
+                className="flex items-center justify-center space-x-reverse space-x-2 order-1 sm:order-2"
               >
                 {loading ? (
                   <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>

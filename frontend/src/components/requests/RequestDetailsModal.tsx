@@ -412,7 +412,7 @@ const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({
                 </div>
               ) : (
                 <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center space-x-reverse space-x-2 text-orange-700 bg-orange-50 px-3 py-2 rounded">
+                  <div className="flex items-center space-x-reverse space-x-2 text-blue-700 bg-blue-50 px-3 py-2 rounded">
                     <User className="w-4 h-4" />
                     <span>לא מוקצה</span>
                   </div>
