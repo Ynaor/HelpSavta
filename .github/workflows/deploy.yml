@@ -1,18 +1,9 @@
-name: Deploy to Azure
+name: Deploy to Production
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy to'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - production
 
 permissions:
   contents: read
@@ -24,45 +15,62 @@ env:
   AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
 jobs:
-  build-and-deploy:
-    name: Build and Deploy
+  deploy:
+    name: Deploy to Production
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment || 'staging' }}
+    environment: production
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Wait for CI to complete and download artifacts
+      - name: Wait for CI completion
+        if: github.event_name == 'push'
+        uses: fountainhead/action-wait-for-check@v1.2.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: "Build and Test"
+          ref: ${{ github.sha }}
+          timeoutSeconds: 600
+
+      - name: Download frontend build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+
+      - name: Download backend build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-build
+          path: backend/
+
+      - name: Download Docker context
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-context
+          path: ./
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
 
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
-
-      - name: Install backend dependencies
-        working-directory: backend
-        run: npm ci
-
-      - name: Build backend
-        working-directory: backend
-        run: npm run build
-
-      - name: Generate Prisma client
-        working-directory: backend
-        run: npx prisma generate
+      # Verify artifacts exist
+      - name: Verify build artifacts
+        run: |
+          echo "Checking frontend build artifacts..."
+          ls -la frontend/dist/
+          echo "Checking backend build artifacts..."
+          ls -la backend/dist/
+          echo "Checking Docker context..."
+          ls -la ./
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -87,30 +95,90 @@ jobs:
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
-          app-name: helpsavta-${{ github.event.inputs.environment || 'staging' }}-backend
-          slot-name: ${{ github.event.inputs.environment == 'production' && 'production' || 'staging' }}
+          app-name: helpsavta-production-backend
+          slot-name: production
           images: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/helpsavta-backend:${{ github.sha }}
 
       - name: Run database migrations
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION }}
         run: |
           cd backend
+          # Ensure Prisma client is available
+          npm install @prisma/client prisma
+          npx prisma generate
           npx prisma migrate deploy
+
+      - name: Wait for deployment to be ready
+        run: |
+          echo "Waiting for deployment to be ready..."
+          sleep 60
 
       - name: Health check
         run: |
-          sleep 30
-          curl -f ${{ secrets.AZURE_APP_URL }}/health || exit 1
+          echo "Running health check..."
+          max_attempts=10
+          attempt=1
+          
+          while [ $attempt -le $max_attempts ]; do
+            echo "Health check attempt $attempt/$max_attempts"
+            
+            if curl -f --max-time 30 ${{ secrets.AZURE_APP_URL_PRODUCTION }}/health; then
+              echo "✅ Health check passed!"
+              break
+            else
+              echo "❌ Health check failed, retrying in 30 seconds..."
+              if [ $attempt -eq $max_attempts ]; then
+                echo "❌ Health check failed after $max_attempts attempts"
+                exit 1
+              fi
+              sleep 30
+              attempt=$((attempt + 1))
+            fi
+          done
 
-      - name: Notify deployment success
+      - name: Verify deployment
+        run: |
+          echo "Verifying deployment endpoints..."
+          
+          # Test API endpoints
+          echo "Testing API health endpoint..."
+          curl -f ${{ secrets.AZURE_APP_URL_PRODUCTION }}/health
+          
+          echo "Testing API test endpoint..."
+          curl -f ${{ secrets.AZURE_APP_URL_PRODUCTION }}/api/test
+          
+          echo "✅ Deployment verification completed successfully!"
+
+      - name: Cleanup old container images
         if: success()
         run: |
-          echo "Deployment to ${{ github.event.inputs.environment || 'staging' }} successful!"
-          echo "Application URL: ${{ secrets.AZURE_APP_URL }}"
-
-      - name: Cleanup old images
-        if: success()
-        run: |
+          echo "Cleaning up old container images..."
           # Keep only the 10 most recent images
-          az acr repository show-tags --name ${{ secrets.AZURE_CONTAINER_REGISTRY }} --repository helpsavta-backend --orderby time_desc --output tsv | tail -n +11 | xargs -I {} az acr repository delete --name ${{ secrets.AZURE_CONTAINER_REGISTRY }} --image helpsavta-backend:{} --yes || true
+          az acr repository show-tags \
+            --name ${{ secrets.AZURE_CONTAINER_REGISTRY }} \
+            --repository helpsavta-backend \
+            --orderby time_desc \
+            --output tsv | \
+            tail -n +11 | \
+            xargs -I {} az acr repository delete \
+              --name ${{ secrets.AZURE_CONTAINER_REGISTRY }} \
+              --image helpsavta-backend:{} \
+              --yes || true
+
+      - name: Deployment success notification
+        if: success()
+        run: |
+          echo "🚀 Deployment to production completed successfully!"
+          echo "Application URL: ${{ secrets.AZURE_APP_URL_PRODUCTION }}"
+          echo "Deployment SHA: ${{ github.sha }}"
+          echo "Deployed at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+
+      - name: Deployment failure notification
+        if: failure()
+        run: |
+          echo "❌ Deployment to production failed!"
+          echo "Please check the logs and try again."
+          echo "Failed SHA: ${{ github.sha }}"
+          echo "Failed at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          exit 1
