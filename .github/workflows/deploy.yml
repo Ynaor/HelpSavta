@@ -24,13 +24,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Get the latest successful CI run and download artifacts from it
-      - name: Get latest CI run ID
+      # Get the CI run for this specific commit
+      - name: Get CI run for current commit
         id: ci-run
         run: |
-          # Get the most recent successful CI run
-          CI_RUN_ID=$(gh run list --workflow=ci.yml --status=success --limit=1 --json databaseId --jq '.[0].databaseId')
-          echo "Found CI run ID: $CI_RUN_ID"
+          # Wait a moment for CI to complete if it's still running
+          sleep 10
+          
+          # Get the CI run for the current commit SHA
+          CI_RUN_ID=$(gh run list --workflow=ci.yml --commit=${{ github.sha }} --json databaseId,status --jq '.[] | select(.status=="completed") | .databaseId' | head -1)
+          
+          if [ -z "$CI_RUN_ID" ]; then
+            echo "No completed CI run found for commit ${{ github.sha }}, waiting..."
+            sleep 30
+            CI_RUN_ID=$(gh run list --workflow=ci.yml --commit=${{ github.sha }} --json databaseId,status --jq '.[] | select(.status=="completed") | .databaseId' | head -1)
+          fi
+          
+          if [ -z "$CI_RUN_ID" ]; then
+            echo "Error: No CI run found for commit ${{ github.sha }}"
+            exit 1
+          fi
+          
+          echo "Found CI run ID for commit ${{ github.sha }}: $CI_RUN_ID"
           echo "ci_run_id=$CI_RUN_ID" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
