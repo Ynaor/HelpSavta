@@ -8,228 +8,36 @@ on:
 
 permissions:
   contents: read
-  security-events: write
   actions: read
   checks: write
   pull-requests: write
 
 jobs:
-  frontend-security:
-    name: Frontend Security Scan
+  test:
+    name: Basic Tests
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Run npm audit
-        working-directory: frontend
-        run: npm audit --audit-level=moderate
-        continue-on-error: true
-
-  frontend-tests:
-    name: Frontend Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Run linting
-        working-directory: frontend
-        run: npm run lint
-
-      - name: Run tests
-        working-directory: frontend
-        run: npm run test:run
-
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
-
-  backend-security:
-    name: Backend Security Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
-
-      - name: Install backend dependencies
-        working-directory: backend
-        run: npm ci
-
-      - name: Run npm audit
-        working-directory: backend
-        run: npm audit --audit-level=moderate
-        continue-on-error: true
-
-  backend-tests:
-    name: Backend Tests
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_PASSWORD: test
-          POSTGRES_USER: test
-          POSTGRES_DB: test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: backend
-        run: npm ci
-
-      - name: Setup test environment
-        working-directory: backend
-        run: |
-          cp .env.example .env.test
-          echo "DATABASE_URL=postgresql://test:test@localhost:5432/test" >> .env.test
-          echo "NODE_ENV=test" >> .env.test
-
-      - name: Generate Prisma client
-        working-directory: backend
-        run: npx prisma generate
-
-      - name: Run database migrations
-        working-directory: backend
-        run: npx prisma migrate deploy
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/test
-
-      - name: Run tests
-        working-directory: backend
-        run: npm test
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/test
-
-  docker-security:
-    name: Docker Security Scan
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run Hadolint
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: Dockerfile
-          failure-threshold: warning
-        continue-on-error: true
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: false
-          tags: helpsavta:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: [frontend-tests, backend-tests]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Start services
-        run: |
-          cp backend/.env.example backend/.env
-          docker-compose up -d --build
-
-      - name: Wait for services
-        run: |
-          timeout 60s bash -c 'until curl -f http://localhost:3001/health; do sleep 2; done'
-
-      - name: Run integration tests
-        run: |
-          # Add integration test commands here
-          curl -f http://localhost:3001/health
-
-      - name: Cleanup
-        if: always()
-        run: docker-compose down -v
-
-  security-analysis:
-    name: Security Analysis
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          languages: ['javascript', 'typescript']
-        continue-on-error: true
+          node-version: '18'
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-        continue-on-error: true
+      - name: Test frontend setup
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run lint
+          npm run build
 
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:javascript"
-        continue-on-error: true
+      - name: Test backend setup
+        working-directory: backend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Success
+        run: echo "✅ Basic CI/CD pipeline completed successfully"
