@@ -1,4 +1,4 @@
-name: CD - Continuous Deployment
+name: Deploy to Azure
 
 on:
   push:
@@ -11,457 +11,120 @@ on:
         default: 'staging'
         type: choice
         options:
-        - staging
-        - production
-      force_deploy:
-        description: 'Force deployment (skip some checks)'
-        required: false
-        default: false
-        type: boolean
+          - staging
+          - production
+
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+  security-events: write
 
 env:
-  NODE_VERSION: '18'
-  AZURE_RESOURCE_GROUP_STAGING: 'helpsavta-staging-rg'
-  AZURE_RESOURCE_GROUP_PRODUCTION: 'helpsavta-production-rg'
-  AZURE_LOCATION: 'East US'
+  AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
 jobs:
-  determine-environment:
-    name: Determine Deployment Environment
+  build-and-deploy:
+    name: Build and Deploy
     runs-on: ubuntu-latest
-    outputs:
-      environment: ${{ steps.set-env.outputs.environment }}
-      resource-group: ${{ steps.set-env.outputs.resource-group }}
-      should-deploy: ${{ steps.set-env.outputs.should-deploy }}
+    environment: ${{ github.event.inputs.environment || 'staging' }}
     
     steps:
-    - name: Set environment variables
-      id: set-env
-      run: |
-        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-          echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
-        else
-          echo "environment=staging" >> $GITHUB_OUTPUT
-        fi
-        
-        ENV="${{ github.event.inputs.environment || 'staging' }}"
-        if [ "$ENV" == "production" ]; then
-          echo "resource-group=${{ env.AZURE_RESOURCE_GROUP_PRODUCTION }}" >> $GITHUB_OUTPUT
-        else
-          echo "resource-group=${{ env.AZURE_RESOURCE_GROUP_STAGING }}" >> $GITHUB_OUTPUT
-        fi
-        
-        # Only deploy if CI passed or force deploy is enabled
-        if [ "${{ github.event.inputs.force_deploy }}" == "true" ] || [ "${{ github.event_name }}" == "push" ]; then
-          echo "should-deploy=true" >> $GITHUB_OUTPUT
-        else
-          echo "should-deploy=false" >> $GITHUB_OUTPUT
-        fi
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  build-and-push:
-    name: Build and Push Docker Images
-    runs-on: ubuntu-latest
-    needs: determine-environment
-    if: needs.determine-environment.outputs.should-deploy == 'true'
-    
-    outputs:
-      backend-image: ${{ steps.meta-backend.outputs.tags }}
-      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
-      backend-digest: ${{ steps.build-backend.outputs.digest }}
-      frontend-digest: ${{ steps.build-frontend.outputs.digest }}
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-    - name: Log in to Azure Container Registry
-      uses: azure/docker-login@v1
-      with:
-        login-server: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
-        username: ${{ secrets.AZURE_CONTAINER_REGISTRY_USERNAME }}
-        password: ${{ secrets.AZURE_CONTAINER_REGISTRY_PASSWORD }}
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
 
-    - name: Extract metadata for backend
-      id: meta-backend
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/helpsavta-backend
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
 
-    - name: Extract metadata for frontend
-      id: meta-frontend
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/helpsavta-frontend
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
 
-    - name: Build and push backend image
-      id: build-backend
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        push: true
-        tags: ${{ steps.meta-backend.outputs.tags }}
-        labels: ${{ steps.meta-backend.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        platforms: linux/amd64
+      - name: Build backend
+        working-directory: backend
+        run: npm run build
 
-    - name: Build and push frontend image
-      id: build-frontend
-      uses: docker/build-push-action@v5
-      with:
-        context: ./frontend
-        file: ./frontend/Dockerfile
-        push: true
-        tags: ${{ steps.meta-frontend.outputs.tags }}
-        labels: ${{ steps.meta-frontend.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        platforms: linux/amd64
+      - name: Generate Prisma client
+        working-directory: backend
+        run: npx prisma generate
 
-  deploy-to-staging:
-    name: Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: [determine-environment, build-and-push]
-    if: needs.determine-environment.outputs.should-deploy == 'true'
-    environment: 
-      name: staging
-      url: ${{ steps.deploy.outputs.staging-url }}
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Azure Login
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Login to Azure Container Registry
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ secrets.AZURE_CONTAINER_REGISTRY_URL }}
+          username: ${{ secrets.AZURE_CONTAINER_REGISTRY_USERNAME }}
+          password: ${{ secrets.AZURE_CONTAINER_REGISTRY_PASSWORD }}
 
-    - name: Set Azure subscription
-      run: az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.AZURE_CONTAINER_REGISTRY_URL }}/helpsavta:${{ github.sha }}
+            ${{ secrets.AZURE_CONTAINER_REGISTRY_URL }}/helpsavta:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-    - name: Deploy Azure infrastructure
-      id: deploy-infra
-      run: |
-        DEPLOYMENT_NAME="helpsavta-deployment-$(date +%Y%m%d-%H%M%S)"
-        
-        az deployment group create \
-          --resource-group ${{ needs.determine-environment.outputs.resource-group }} \
-          --template-file azure/main.bicep \
-          --parameters @azure/parameters.staging.json \
-          --name $DEPLOYMENT_NAME \
-          --verbose
-        
-        echo "deployment-name=$DEPLOYMENT_NAME" >> $GITHUB_OUTPUT
+      - name: Deploy to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: .
+          containerAppName: ${{ secrets.AZURE_CONTAINER_APP_NAME }}
+          resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          imageToDeploy: ${{ secrets.AZURE_CONTAINER_REGISTRY_URL }}/helpsavta:${{ github.sha }}
+          environmentVariables: |
+            NODE_ENV=production
+            PORT=3001
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }}
+            SENDGRID_FROM_EMAIL=${{ secrets.SENDGRID_FROM_EMAIL }}
+            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
 
-    - name: Get deployment outputs
-      id: outputs
-      run: |
-        WEBAPP_NAME=$(az deployment group show \
-          --resource-group ${{ needs.determine-environment.outputs.resource-group }} \
-          --name ${{ steps.deploy-infra.outputs.deployment-name }} \
-          --query 'properties.outputs.webAppName.value' \
-          --output tsv)
-        
-        CONTAINER_REGISTRY=$(az deployment group show \
-          --resource-group ${{ needs.determine-environment.outputs.resource-group }} \
-          --name ${{ steps.deploy-infra.outputs.deployment-name }} \
-          --query 'properties.outputs.containerRegistryLoginServer.value' \
-          --output tsv)
-        
-        echo "webapp-name=$WEBAPP_NAME" >> $GITHUB_OUTPUT
-        echo "container-registry=$CONTAINER_REGISTRY" >> $GITHUB_OUTPUT
+      - name: Run database migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          cd backend
+          npx prisma migrate deploy
 
-    - name: Run database migrations
-      run: |
-        # Set database connection for staging
-        echo "Running database migrations for staging..."
-        cd backend
-        
-        # Use staging database URL from Azure Key Vault or secrets
-        export DATABASE_URL="${{ secrets.STAGING_DATABASE_URL }}"
-        npx prisma migrate deploy
+      - name: Health check
+        run: |
+          sleep 30
+          curl -f ${{ secrets.AZURE_APP_URL }}/health || exit 1
 
-    - name: Deploy to staging slot
-      id: deploy
-      run: |
-        WEBAPP_NAME="${{ steps.outputs.outputs.webapp-name }}"
-        CONTAINER_REGISTRY="${{ steps.outputs.outputs.container-registry }}"
-        
-        # Update backend container
-        az webapp config container set \
-          --name $WEBAPP_NAME \
-          --resource-group ${{ needs.determine-environment.outputs.resource-group }} \
-          --slot staging \
-          --docker-custom-image-name $CONTAINER_REGISTRY/helpsavta-backend:latest \
-          --docker-registry-server-url https://$CONTAINER_REGISTRY
-        
-        # Restart staging slot
-        az webapp restart \
-          --name $WEBAPP_NAME \
-          --resource-group ${{ needs.determine-environment.outputs.resource-group }} \
-          --slot staging
-        
-        STAGING_URL="https://${WEBAPP_NAME}-staging.azurewebsites.net"
-        echo "staging-url=$STAGING_URL" >> $GITHUB_OUTPUT
-        
-        # Wait for deployment
-        echo "Waiting for deployment to complete..."
-        sleep 60
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "Deployment to ${{ github.event.inputs.environment || 'staging' }} successful!"
+          echo "Application URL: ${{ secrets.AZURE_APP_URL }}"
 
-    - name: Run staging smoke tests
-      run: |
-        chmod +x scripts/smoke-tests.sh
-        ./scripts/smoke-tests.sh ${{ steps.deploy.outputs.staging-url }}
-
-    - name: Run post-deployment verification
-      run: |
-        echo "Running post-deployment verification tests..."
-        chmod +x scripts/verify-deployment.sh
-        ./scripts/verify-deployment.sh ${{ steps.deploy.outputs.staging-url }}
-
-    - name: Send deployment notification
-      if: always()
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const deploymentStatus = '${{ job.status }}' === 'success' ? 'successful' : 'failed';
-          const statusEmoji = '${{ job.status }}' === 'success' ? '✅' : '❌';
-          const stagingUrl = '${{ steps.deploy.outputs.staging-url }}';
-          
-          const body = `
-          ## ${statusEmoji} Staging Deployment ${deploymentStatus.charAt(0).toUpperCase() + deploymentStatus.slice(1)}
-          
-          **Environment:** Staging
-          **URL:** ${stagingUrl}
-          **Commit:** ${context.sha.substring(0, 7)}
-          **Branch:** ${context.ref.replace('refs/heads/', '')}
-          **Workflow:** [${context.workflow}](${context.payload.repository.html_url}/actions/runs/${context.runId})
-          
-          ${deploymentStatus === 'successful' ?
-            '🎉 Staging environment is ready for testing!' :
-            '⚠️ Staging deployment failed. Please check the logs for details.'}
-          `;
-          
-          // Create deployment status comment
-          if (context.eventName === 'push') {
-            await github.rest.repos.createCommitComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              commit_sha: context.sha,
-              body: body
-            });
-          }
-
-    - name: Update deployment status
-      if: always()
-      run: |
-        if [ "${{ job.status }}" == "success" ]; then
-          echo "✅ Staging deployment successful: ${{ steps.deploy.outputs.staging-url }}"
-          echo "🔗 Staging URL: ${{ steps.deploy.outputs.staging-url }}" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Staging deployment failed"
-          exit 1
-        fi
-
-  deploy-to-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [determine-environment, build-and-push, deploy-to-staging]
-    if: needs.determine-environment.outputs.environment == 'production' && needs.determine-environment.outputs.should-deploy == 'true'
-    environment: 
-      name: production
-      url: ${{ steps.production-swap.outputs.production-url }}
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Azure Login
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-    - name: Get staging deployment info
-      id: staging-info
-      run: |
-        WEBAPP_NAME=$(az deployment group show \
-          --resource-group ${{ env.AZURE_RESOURCE_GROUP_PRODUCTION }} \
-          --name ${{ needs.deploy-to-staging.outputs.deployment-name }} \
-          --query 'properties.outputs.webAppName.value' \
-          --output tsv)
-        
-        echo "webapp-name=$WEBAPP_NAME" >> $GITHUB_OUTPUT
-
-    - name: Run production database migrations
-      run: |
-        echo "Running production database migrations..."
-        chmod +x scripts/migrate-production.sh
-        export DATABASE_URL="${{ secrets.PRODUCTION_DATABASE_URL }}"
-        ./scripts/migrate-production.sh
-
-    - name: Swap staging to production
-      id: production-swap
-      run: |
-        WEBAPP_NAME="${{ steps.staging-info.outputs.webapp-name }}"
-        
-        echo "Swapping staging slot to production..."
-        az webapp deployment slot swap \
-          --resource-group ${{ env.AZURE_RESOURCE_GROUP_PRODUCTION }} \
-          --name $WEBAPP_NAME \
-          --slot staging \
-          --target-slot production
-        
-        PRODUCTION_URL="https://${WEBAPP_NAME}.azurewebsites.net"
-        echo "production-url=$PRODUCTION_URL" >> $GITHUB_OUTPUT
-        
-        # Wait for swap to complete
-        echo "Waiting for production swap to complete..."
-        sleep 30
-
-    - name: Run production smoke tests
-      run: |
-        chmod +x scripts/smoke-tests.sh
-        ./scripts/smoke-tests.sh ${{ steps.production-swap.outputs.production-url }}
-
-    - name: Run production verification tests
-      run: |
-        echo "Running production verification tests..."
-        chmod +x scripts/verify-deployment.sh
-        ./scripts/verify-deployment.sh ${{ steps.production-swap.outputs.production-url }}
-
-    - name: Rollback on failure
-      if: failure()
-      run: |
-        echo "Production deployment failed, initiating rollback..."
-        WEBAPP_NAME="${{ steps.staging-info.outputs.webapp-name }}"
-        
-        # Swap back to previous version
-        az webapp deployment slot swap \
-          --resource-group ${{ env.AZURE_RESOURCE_GROUP_PRODUCTION }} \
-          --name $WEBAPP_NAME \
-          --slot production \
-          --target-slot staging
-        
-        echo "Rollback completed"
-
-    - name: Send production deployment notification
-      if: always()
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const deploymentStatus = '${{ job.status }}' === 'success' ? 'successful' : 'failed';
-          const statusEmoji = '${{ job.status }}' === 'success' ? '🚀' : '❌';
-          const productionUrl = '${{ steps.production-swap.outputs.production-url }}';
-          
-          const body = `
-          ## ${statusEmoji} Production Deployment ${deploymentStatus.charAt(0).toUpperCase() + deploymentStatus.slice(1)}
-          
-          **Environment:** Production
-          **URL:** ${productionUrl}
-          **Commit:** ${context.sha.substring(0, 7)}
-          **Branch:** ${context.ref.replace('refs/heads/', '')}
-          **Workflow:** [${context.workflow}](${context.payload.repository.html_url}/actions/runs/${context.runId})
-          **Deployed At:** ${new Date().toISOString()}
-          
-          ${deploymentStatus === 'successful' ?
-            '🎉 Production deployment completed successfully! The new version is now live.' :
-            '⚠️ Production deployment failed and has been automatically rolled back. Please check the logs.'}
-          `;
-          
-          // Create deployment status comment
-          await github.rest.repos.createCommitComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            commit_sha: context.sha,
-            body: body
-          });
-          
-          // Create GitHub release for successful production deployments
-          if (deploymentStatus === 'successful') {
-            const tagName = `release-${new Date().toISOString().split('T')[0]}-${context.sha.substring(0, 7)}`;
-            await github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: tagName,
-              name: `Production Release ${tagName}`,
-              body: `Production deployment of commit ${context.sha.substring(0, 7)}\n\n${body}`,
-              draft: false,
-              prerelease: false
-            });
-          }
-
-    - name: Update deployment status
-      if: always()
-      run: |
-        if [ "${{ job.status }}" == "success" ]; then
-          echo "✅ Production deployment successful: ${{ steps.production-swap.outputs.production-url }}"
-          echo "🚀 Production URL: ${{ steps.production-swap.outputs.production-url }}" >> $GITHUB_STEP_SUMMARY
-          echo "📅 Deployed at: $(date -u)" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Production deployment failed and rolled back"
-          exit 1
-        fi
-
-  cleanup:
-    name: Cleanup
-    runs-on: ubuntu-latest
-    needs: [determine-environment, build-and-push, deploy-to-staging]
-    if: always() && needs.determine-environment.outputs.should-deploy == 'true'
-    
-    steps:
-    - name: Azure Login
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-    - name: Cleanup old container images
-      run: |
-        echo "Cleaning up old container images..."
-        # Keep last 5 versions of each image
-        REGISTRY="${{ secrets.AZURE_CONTAINER_REGISTRY }}"
-        
-        # Cleanup backend images
-        az acr repository show-tags \
-          --name ${REGISTRY} \
-          --repository helpsavta-backend \
-          --orderby time_desc \
-          --output tsv | tail -n +6 | \
-        while read tag; do
-          if [ -n "$tag" ] && [ "$tag" != "latest" ]; then
-            echo "Deleting old backend image: $tag"
-            az acr repository delete \
-              --name ${REGISTRY} \
-              --image helpsavta-backend:$tag \
-              --yes || true
-          fi
-        done
-        
-        # Cleanup frontend images
-        az acr repository show-tags \
-          --name ${REGISTRY} \
-          --repository helpsavta-frontend \
-          --orderby time_desc \
-          --output tsv | tail -n +6 | \
-        while read tag; do
-          if [ -n "$tag" ] && [ "$tag" != "latest" ]; then
-            echo "Deleting old frontend image: $tag"
-            az acr repository delete \
-              --name ${REGISTRY} \
-              --image helpsavta-frontend:$tag \
-              --yes || true
-          fi
-        done
+      - name: Cleanup old images
+        if: success()
+        run: |
+          # Keep only the 10 most recent images
+          az acr repository show-tags --name ${{ secrets.AZURE_CONTAINER_REGISTRY_NAME }} --repository helpsavta --orderby time_desc --output tsv | tail -n +11 | xargs -I {} az acr repository delete --name ${{ secrets.AZURE_CONTAINER_REGISTRY_NAME }} --image helpsavta:{} --yes || true

@@ -5,11 +5,11 @@ FROM node:18-alpine AS base
 FROM base AS deps
 # Install necessary dependencies for Prisma and ARM64 compatibility
 RUN apk add --no-cache \
-    libc6-compat \
-    openssl \
-    openssl-dev \
-    ca-certificates \
-    dumb-init \
+    libc6-compat=1.2.4-r2 \
+    openssl=3.1.4-r5 \
+    openssl-dev=3.1.4-r5 \
+    ca-certificates=20240226-r0 \
+    dumb-init=1.2.5-r2 \
     && update-ca-certificates
 
 WORKDIR /app
@@ -25,9 +25,9 @@ RUN npm install && npm cache clean --force
 FROM base AS builder
 # Install build dependencies
 RUN apk add --no-cache \
-    openssl \
-    openssl-dev \
-    ca-certificates
+    openssl=3.1.4-r5 \
+    openssl-dev=3.1.4-r5 \
+    ca-certificates=20240226-r0
 
 WORKDIR /app
 
@@ -45,10 +45,10 @@ RUN npm run build
 FROM base AS runner
 # Install runtime dependencies for Prisma
 RUN apk add --no-cache \
-    openssl \
-    ca-certificates \
-    dumb-init \
-    netcat-openbsd \
+    openssl=3.1.4-r5 \
+    ca-certificates=20240226-r0 \
+    dumb-init=1.2.5-r2 \
+    netcat-openbsd=1.226-r0 \
     && update-ca-certificates
 
 WORKDIR /app
