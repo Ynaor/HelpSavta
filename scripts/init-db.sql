@@ -59,15 +59,15 @@ $$ language 'plpgsql';
 CREATE OR REPLACE FUNCTION soft_delete()
 RETURNS TRIGGER AS $$
 BEGIN
-    UPDATE 
-        CASE TG_TABLE_NAME
-            WHEN 'HelpRequest' THEN
-                UPDATE "HelpRequest" SET deleted_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
-            WHEN 'TimeSlot' THEN
-                UPDATE "TimeSlot" SET deleted_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
-            WHEN 'Admin' THEN
-                UPDATE "Admin" SET deleted_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
-        END;
+    -- Use IF-ELSIF structure instead of CASE for table-specific updates
+    IF TG_TABLE_NAME = 'tech_requests' THEN
+        UPDATE tech_requests SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+    ELSIF TG_TABLE_NAME = 'available_slots' THEN
+        UPDATE available_slots SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+    ELSIF TG_TABLE_NAME = 'admin_users' THEN
+        UPDATE admin_users SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+    END IF;
+    
     RETURN NULL;
 END;
 $$ language 'plpgsql';
@@ -90,17 +90,17 @@ $$ language 'plpgsql';
 
 -- Performance monitoring view
 CREATE OR REPLACE VIEW slow_queries AS
-SELECT 
+SELECT
     query,
     calls,
-    total_time,
-    mean_time,
-    max_time,
-    stddev_time,
-    (total_time / sum(total_time) OVER ()) * 100 AS percentage
+    total_exec_time,
+    mean_exec_time,
+    max_exec_time,
+    stddev_exec_time,
+    (total_exec_time / sum(total_exec_time) OVER ()) * 100 AS percentage
 FROM pg_stat_statements
 WHERE calls > 10
-ORDER BY total_time DESC
+ORDER BY total_exec_time DESC
 LIMIT 20;
 
 -- Database size monitoring view
@@ -124,10 +124,10 @@ ORDER BY size_bytes DESC;
 
 -- Index usage monitoring view
 CREATE OR REPLACE VIEW index_usage AS
-SELECT 
+SELECT
     schemaname,
-    tablename,
-    indexname,
+    relname as tablename,
+    indexrelname as indexname,
     idx_tup_read,
     idx_tup_fetch,
     pg_size_pretty(pg_relation_size(indexrelid)) as size

@@ -24,8 +24,12 @@ if [[ ! "$ENVIRONMENT" =~ ^(staging|production)$ ]]; then
 fi
 
 # Set environment-specific variables
-RESOURCE_GROUP="helpsavta-${ENVIRONMENT}-rg"
-LOCATION="East US"
+if [[ "$ENVIRONMENT" == "production" ]]; then
+    RESOURCE_GROUP="helpsavta-prod-rg"
+else
+    RESOURCE_GROUP="helpsavta-${ENVIRONMENT}-rg"
+fi
+LOCATION="West Europe"
 KEY_VAULT_NAME="helpsavta-${ENVIRONMENT}-kv"
 SUBSCRIPTION_ID="${AZURE_SUBSCRIPTION_ID}"
 
@@ -129,6 +133,46 @@ az keyvault secret set \
     --vault-name "$KEY_VAULT_NAME" \
     --name "encryption-key" \
     --value "$ENCRYPTION_KEY" \
+    --output table
+
+# Generate admin password
+ADMIN_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
+az keyvault secret set \
+    --vault-name "$KEY_VAULT_NAME" \
+    --name "admin-password" \
+    --value "$ADMIN_PASSWORD" \
+    --output table
+
+# Store SendGrid configuration (placeholder values - to be updated with actual SendGrid API key)
+log "${BLUE}Setting up SendGrid email configuration...${NC}"
+az keyvault secret set \
+    --vault-name "$KEY_VAULT_NAME" \
+    --name "sendgrid-api-key" \
+    --value "REPLACE_WITH_ACTUAL_SENDGRID_API_KEY" \
+    --output table
+
+az keyvault secret set \
+    --vault-name "$KEY_VAULT_NAME" \
+    --name "email-host" \
+    --value "smtp.sendgrid.net" \
+    --output table
+
+az keyvault secret set \
+    --vault-name "$KEY_VAULT_NAME" \
+    --name "email-port" \
+    --value "587" \
+    --output table
+
+az keyvault secret set \
+    --vault-name "$KEY_VAULT_NAME" \
+    --name "email-user" \
+    --value "apikey" \
+    --output table
+
+az keyvault secret set \
+    --vault-name "$KEY_VAULT_NAME" \
+    --name "email-from" \
+    --value "noreply@helpsavta.co.il" \
     --output table
 
 # Store email configuration (if provided)
@@ -352,7 +396,20 @@ log "4. Set up backup policies"
 echo ""
 log "${BLUE}Important secrets stored in Key Vault:${NC}"
 log "- postgres-admin-password"
+log "- admin-password (for default admin user)"
 log "- jwt-secret"
 log "- session-secret"
 log "- encryption-key"
 log "- database-url"
+log "- sendgrid-api-key (placeholder - update with actual API key)"
+log "- email-host (smtp.sendgrid.net)"
+log "- email-port (587)"
+log "- email-user (apikey)"
+log "- email-from (noreply@helpsavta.co.il)"
+echo ""
+log "${YELLOW}SendGrid Setup Required:${NC}"
+log "1. Create SendGrid account at https://sendgrid.com/"
+log "2. Generate API key with Mail Send permissions"
+log "3. Update sendgrid-api-key secret in Key Vault:"
+log "   az keyvault secret set --vault-name $KEY_VAULT_NAME --name sendgrid-api-key --value 'YOUR_ACTUAL_API_KEY'"
+log "4. Configure sender authentication (domain or single sender verification)"

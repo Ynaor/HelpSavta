@@ -3,8 +3,14 @@ FROM node:18-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat
+# Install necessary dependencies for Prisma and ARM64 compatibility
+RUN apk add --no-cache \
+    libc6-compat \
+    openssl \
+    openssl-dev \
+    ca-certificates \
+    dumb-init \
+    && update-ca-certificates
 
 WORKDIR /app
 
@@ -12,18 +18,24 @@ WORKDIR /app
 COPY backend/package*.json ./
 COPY backend/prisma ./prisma/
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install dependencies including dev dependencies for Prisma generation
+RUN npm install && npm cache clean --force
 
 # Rebuild the source code only when needed
 FROM base AS builder
+# Install build dependencies
+RUN apk add --no-cache \
+    openssl \
+    openssl-dev \
+    ca-certificates
+
 WORKDIR /app
 
 # Copy dependencies
 COPY --from=deps /app/node_modules ./node_modules
 COPY backend/ .
 
-# Generate Prisma client
+# Generate Prisma client with binary targets for Alpine Linux
 RUN npx prisma generate
 
 # Build the application
@@ -31,14 +43,19 @@ RUN npm run build
 
 # Production image, copy all the files and run the app
 FROM base AS runner
+# Install runtime dependencies for Prisma
+RUN apk add --no-cache \
+    openssl \
+    ca-certificates \
+    dumb-init \
+    netcat-openbsd \
+    && update-ca-certificates
+
 WORKDIR /app
 
 # Don't run production as root
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 backend
-
-# Copy the public folder
-COPY --from=builder /app/public ./public
 
 # Copy built application
 COPY --from=builder --chown=backend:nodejs /app/dist ./dist
@@ -46,9 +63,13 @@ COPY --from=builder --chown=backend:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=backend:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=backend:nodejs /app/prisma ./prisma
 
-# Copy startup script
+# Copy startup scripts
 COPY --from=builder --chown=backend:nodejs /app/scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
-RUN chmod +x ./scripts/docker-entrypoint.sh
+COPY --from=builder --chown=backend:nodejs /app/scripts/docker-setup.sh ./scripts/docker-setup.sh
+RUN chmod +x ./scripts/docker-entrypoint.sh ./scripts/docker-setup.sh
+
+# Copy healthcheck script
+COPY --from=builder --chown=backend:nodejs /app/healthcheck.js ./healthcheck.js
 
 USER backend
 
@@ -63,5 +84,5 @@ ENV PORT=3001
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node healthcheck.js
 
-# Start the application
-CMD ["./scripts/docker-entrypoint.sh"]
+# Start the application using dumb-init for proper signal handling
+CMD ["dumb-init", "./scripts/docker-entrypoint.sh"]

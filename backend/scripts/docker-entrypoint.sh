@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Docker entrypoint script for HelpSavta Backend
 set -e
@@ -23,13 +23,26 @@ log() {
 wait_for_db() {
     log "${BLUE}Waiting for database connection...${NC}"
     
-    local max_attempts=30
+    local max_attempts=60
     local attempt=1
     
     while [ $attempt -le $max_attempts ]; do
-        if npx prisma db push --accept-data-loss > /dev/null 2>&1; then
-            log "${GREEN}✓ Database connection established${NC}"
-            return 0
+        # Check if DATABASE_URL contains postgres
+        if echo "$DATABASE_URL" | grep -q "postgresql://"; then
+            # Extract host and port from PostgreSQL URL
+            local db_host=$(echo "$DATABASE_URL" | sed -n 's/.*@\([^:]*\):.*/\1/p')
+            local db_port=$(echo "$DATABASE_URL" | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+            
+            if nc -z "$db_host" "$db_port" > /dev/null 2>&1; then
+                log "${GREEN}✓ Database connection established${NC}"
+                return 0
+            fi
+        else
+            # For SQLite or other databases, just check if we can connect
+            if npx prisma db push --accept-data-loss > /dev/null 2>&1; then
+                log "${GREEN}✓ Database connection established${NC}"
+                return 0
+            fi
         fi
         
         log "${YELLOW}Attempt $attempt/$max_attempts failed, retrying in 2 seconds...${NC}"
@@ -70,40 +83,43 @@ wait_for_redis() {
     return 0
 }
 
-# Generate Prisma client if needed
+# Run Docker-specific setup first
+if [ -f "./scripts/docker-setup.sh" ]; then
+    log "${BLUE}Running Docker setup...${NC}"
+    chmod +x ./scripts/docker-setup.sh
+    ./scripts/docker-setup.sh
+fi
+
+# Generate Prisma client with proper binary targets
 log "${BLUE}Generating Prisma client...${NC}"
 npx prisma generate
 
-# Wait for dependencies
+# Wait for database and Redis
 wait_for_db
 wait_for_redis
 
-# Run database migrations in production
-if [ "$NODE_ENV" = "production" ]; then
-    log "${BLUE}Running database migrations...${NC}"
-    npx prisma migrate deploy
+# Setup database schema if needed
+log "${BLUE}Setting up database schema...${NC}"
+if npx prisma db push --accept-data-loss; then
+    log "${GREEN}✓ Database schema synchronized${NC}"
 else
-    log "${BLUE}Pushing database schema...${NC}"
-    npx prisma db push --accept-data-loss
+    log "${YELLOW}⚠ Database schema setup failed, continuing anyway${NC}"
 fi
 
-# Seed database if SEED_DATABASE is set and seed file exists
-if [ "$SEED_DATABASE" = "true" ] && [ -f "./prisma/seed.ts" ]; then
-    log "${BLUE}Seeding database...${NC}"
-    npx tsx ./prisma/seed.ts
+# Run database seeding if needed
+if [ "$NODE_ENV" = "development" ] && [ -f "./prisma/seed.ts" ]; then
+    log "${BLUE}Running database seed...${NC}"
+    if npm run db:seed > /dev/null 2>&1; then
+        log "${GREEN}✓ Database seeded successfully${NC}"
+    else
+        log "${YELLOW}⚠ Database seeding failed or not needed${NC}"
+    fi
 fi
 
-# Create uploads directory if it doesn't exist
-mkdir -p ./uploads
-chmod 755 ./uploads
-
-# Create logs directory if it doesn't exist
-mkdir -p ./logs
-chmod 755 ./logs
-
-# Set proper permissions for temp directory
-mkdir -p ./temp
-chmod 755 ./temp
+# Create directories if they don't exist (skip permissions for now since we're running as non-root)
+mkdir -p ./uploads 2>/dev/null || true
+mkdir -p ./logs 2>/dev/null || true
+mkdir -p ./temp 2>/dev/null || true
 
 # Start the application
 log "${GREEN}Starting HelpSavta Backend...${NC}"

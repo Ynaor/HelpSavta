@@ -14,6 +14,10 @@
     "db:migrate:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
     "db:seed": "ts-node prisma/seed.ts",
+    "db:use-sqlite": "node scripts/use-sqlite.js && npm run db:generate",
+    "db:use-postgresql": "node scripts/use-postgresql.js && npm run db:generate",
+    "db:setup-sqlite": "npm run db:use-sqlite && npm run db:push",
+    "db:setup-postgresql": "npm run db:use-postgresql && npm run db:push",
     "migrate:postgresql": "ts-node scripts/migrate-to-postgresql.ts",
     "backup-restore": "ts-node scripts/backup-restore.ts",
     "production:setup": "ts-node scripts/production-setup.ts",
@@ -44,7 +48,8 @@
     "joi": "^17.11.0",
     "nodemailer": "^7.0.3",
     "pg": "^8.11.3",
-    "prisma": "^5.7.1"
+    "prisma": "^5.7.1",
+    "sqlite3": "^5.1.6"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

@@ -12,14 +12,17 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install && npm cache clean --force
 
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
 
-# Copy dependencies
-COPY --from=deps /app/node_modules ./node_modules
+# Copy package files and install all dependencies (including dev)
+COPY package*.json ./
+RUN npm install
+
+# Copy source code
 COPY . .
 
 # Build the application
@@ -39,13 +42,17 @@ COPY nginx.conf /etc/nginx/nginx.conf
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S frontend -u 1001
 
-# Change ownership of nginx directories
+# Change ownership of nginx directories and create necessary directories
 RUN chown -R frontend:nodejs /var/cache/nginx && \
     chown -R frontend:nodejs /var/log/nginx && \
-    chown -R frontend:nodejs /etc/nginx/conf.d
+    chown -R frontend:nodejs /etc/nginx/conf.d && \
+    chown -R frontend:nodejs /usr/share/nginx/html && \
+    touch /run/nginx.pid && \
+    chown frontend:nodejs /run/nginx.pid
 
-# Switch to non-root user
-USER frontend
+# For nginx to work properly, we need to keep it running as root
+# The non-root user setup is commented out for now
+# USER frontend
 
 # Expose the port
 EXPOSE 80

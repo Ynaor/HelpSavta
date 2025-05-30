@@ -6,7 +6,7 @@
       "value": "production"
     },
     "location": {
-      "value": "East US"
+      "value": "West Europe"
     },
     "appServicePlanSku": {
       "value": "P1v3"
@@ -17,7 +17,7 @@
     "postgresAdminPassword": {
       "reference": {
         "keyVault": {
-          "id": "/subscriptions/{subscription-id}/resourceGroups/helpsavta-production-rg/providers/Microsoft.KeyVault/vaults/helpsavta-production-kv"
+          "id": "/subscriptions/6720ecf6-4ad2-4909-b6b6-4696eb862b26/resourceGroups/helpsavta-prod-rg/providers/Microsoft.KeyVault/vaults/helpsavta-production-kv"
         },
         "secretName": "postgres-admin-password"
       }

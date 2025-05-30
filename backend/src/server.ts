@@ -79,6 +79,18 @@ app.get(environment.healthCheck.path, async (req, res) => {
   try {
     const dbConnected = await checkDatabaseConnection(prisma);
     
+    // Determine database type from DATABASE_URL
+    const databaseUrl = environment.database.url;
+    let databaseType = 'Unknown';
+    
+    if (databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://')) {
+      databaseType = 'PostgreSQL';
+    } else if (databaseUrl.startsWith('file:') || databaseUrl.includes('.db')) {
+      databaseType = 'SQLite';
+    } else if (databaseUrl.startsWith('mysql://')) {
+      databaseType = 'MySQL';
+    }
+    
     res.json({
       status: dbConnected ? 'OK' : 'DEGRADED',
       message: dbConnected ? 'המערכת פועלת תקין' : 'בעיה בחיבור למסד נתונים',
@@ -87,7 +99,7 @@ app.get(environment.healthCheck.path, async (req, res) => {
       environment: environment.NODE_ENV,
       database: {
         connected: dbConnected,
-        type: environment.isProduction ? 'PostgreSQL' : 'SQLite'
+        type: databaseType
       },
       version: '1.0.0'
     });
@@ -149,7 +161,20 @@ const server = app.listen(environment.server.port, environment.server.host, asyn
   console.log(`🌐 Health check: http://localhost:${environment.server.port}${environment.healthCheck.path}`);
   console.log(`📚 API docs: http://localhost:${environment.server.port}/api`);
   console.log(`🔒 Environment: ${environment.NODE_ENV}`);
-  console.log(`💾 Database: ${environment.isProduction ? 'PostgreSQL' : 'SQLite'}`);
+  
+  // Determine database type from DATABASE_URL
+  const databaseUrl = environment.database.url;
+  let databaseType = 'Unknown';
+  
+  if (databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://')) {
+    databaseType = 'PostgreSQL';
+  } else if (databaseUrl.startsWith('file:') || databaseUrl.includes('.db')) {
+    databaseType = 'SQLite';
+  } else if (databaseUrl.startsWith('mysql://')) {
+    databaseType = 'MySQL';
+  }
+  
+  console.log(`💾 Database: ${databaseType}`);
   
   // Check database connection on startup
   try {

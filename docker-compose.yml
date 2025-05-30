@@ -1,6 +1,4 @@
 # Docker Compose for Local Development
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
@@ -15,7 +13,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./scripts/init-db-minimal.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U helpsavta -d helpsavta"]
       interval: 10s
@@ -50,28 +48,39 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3001
+      HOST: 0.0.0.0
       DATABASE_URL: postgresql://helpsavta:helpsavta_dev_password@postgres:5432/helpsavta
       REDIS_URL: redis://:redis_dev_password@redis:6379
-      JWT_SECRET: development_jwt_secret_key_123456789
-      SESSION_SECRET: development_session_secret_key_123456789
-      ENCRYPTION_KEY: development_encryption_key_12345
-      CORS_ORIGIN: http://localhost:3000
-      # Email settings for development
-      SMTP_HOST: smtp.ethereal.email
-      SMTP_PORT: 587
-      SMTP_SECURE: false
-      SMTP_USER: ethereal.user@ethereal.email
-      SMTP_PASS: ethereal.pass
-      EMAIL_FROM: noreply@helpsavta-dev.com
+      SESSION_SECRET: development_session_secret_key_min_32_chars_for_docker
+      SESSION_MAX_AGE: 86400000
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 100
+      FRONTEND_URL: http://localhost:3000
       # Admin settings
-      ADMIN_EMAIL: admin@helpsavta-dev.com
-      ADMIN_PASSWORD: admin123dev
+      DEFAULT_ADMIN_USERNAME: admin
+      DEFAULT_ADMIN_PASSWORD: admin123dev
+      # Email settings for development
+      EMAIL_HOST: smtp.ethereal.email
+      EMAIL_PORT: 587
+      EMAIL_SECURE: false
+      EMAIL_USER: ethereal.user@ethereal.email
+      EMAIL_PASS: ethereal.pass
+      EMAIL_FROM: noreply@helpsavta-dev.com
+      # Logging and health check
+      LOG_LEVEL: info
+      HEALTH_CHECK_PATH: /health
+      # Database pool settings
+      DB_POOL_MIN: 2
+      DB_POOL_MAX: 20
+      DB_POOL_ACQUIRE_TIMEOUT: 60000
+      DB_POOL_IDLE_TIMEOUT: 10000
     ports:
       - "3001:3001"
     volumes:
       - ./backend:/app
       - /app/node_modules
       - backend_uploads:/app/uploads
+      - ./backend/prisma:/app/prisma
     depends_on:
       postgres:
         condition: service_healthy

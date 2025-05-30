@@ -6,7 +6,7 @@
       "value": "staging"
     },
     "location": {
-      "value": "East US"
+      "value": "West Europe"
     },
     "appServicePlanSku": {
       "value": "B1"
@@ -17,7 +17,7 @@
     "postgresAdminPassword": {
       "reference": {
         "keyVault": {
-          "id": "/subscriptions/{subscription-id}/resourceGroups/helpsavta-staging-rg/providers/Microsoft.KeyVault/vaults/helpsavta-staging-kv"
+          "id": "/subscriptions/6720ecf6-4ad2-4909-b6b6-4696eb862b26/resourceGroups/helpsavta-staging-rg/providers/Microsoft.KeyVault/vaults/helpsavta-staging-kv"
         },
         "secretName": "postgres-admin-password"
       }

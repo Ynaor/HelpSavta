@@ -1,0 +1,246 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "postgresAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Password for the PostgreSQL administrator"
+      }
+    }
+  },
+  "variables": {
+    "location": "westeurope",
+    "appServicePlanName": "helpsavta-production-plan",
+    "webAppName": "helpsavta-production-backend",
+    "postgresServerName": "helpsavta-production-postgres",
+    "applicationInsightsName": "helpsavta-production-insights",
+    "postgresAdminUsername": "helpsavta_admin"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2021-02-01",
+      "name": "[variables('appServicePlanName')]",
+      "location": "[variables('location')]",
+      "sku": {
+        "name": "P1v3",
+        "tier": "PremiumV3",
+        "size": "P1v3",
+        "family": "Pv3",
+        "capacity": 1
+      },
+      "kind": "linux",
+      "properties": {
+        "perSiteScaling": false,
+        "elasticScaleEnabled": false,
+        "maximumElasticWorkerCount": 1,
+        "isSpot": false,
+        "reserved": true,
+        "isXenon": false,
+        "hyperV": false,
+        "targetWorkerCount": 0,
+        "targetWorkerSizeId": 0,
+        "zoneRedundant": false
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2021-02-01",
+      "name": "[variables('webAppName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]"
+      ],
+      "kind": "app,linux",
+      "properties": {
+        "enabled": true,
+        "hostNameSslStates": [
+          {
+            "name": "[concat(variables('webAppName'), '.azurewebsites.net')]",
+            "sslState": "Disabled",
+            "hostType": "Standard"
+          },
+          {
+            "name": "[concat(variables('webAppName'), '.scm.azurewebsites.net')]",
+            "sslState": "Disabled",
+            "hostType": "Repository"
+          }
+        ],
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+        "reserved": true,
+        "isXenon": false,
+        "hyperV": false,
+        "siteConfig": {
+          "numberOfWorkers": 1,
+          "linuxFxVersion": "NODE|18-lts",
+          "acrUseManagedIdentityCreds": false,
+          "alwaysOn": true,
+          "http20Enabled": false,
+          "functionAppScaleLimit": 0,
+          "minimumElasticInstanceCount": 0
+        },
+        "scmSiteAlsoStopped": false,
+        "clientAffinityEnabled": false,
+        "clientCertEnabled": false,
+        "clientCertMode": "Required",
+        "hostNamesDisabled": false,
+        "customDomainVerificationId": "",
+        "containerSize": 0,
+        "dailyMemoryTimeQuota": 0,
+        "httpsOnly": true,
+        "redundancyMode": "None",
+        "storageAccountRequired": false,
+        "keyVaultReferenceIdentity": "SystemAssigned"
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites/slots",
+      "apiVersion": "2021-02-01",
+      "name": "[concat(variables('webAppName'), '/staging')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('webAppName'))]"
+      ],
+      "kind": "app,linux",
+      "properties": {
+        "enabled": true,
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+        "reserved": true,
+        "isXenon": false,
+        "hyperV": false,
+        "siteConfig": {
+          "numberOfWorkers": 1,
+          "linuxFxVersion": "NODE|18-lts",
+          "acrUseManagedIdentityCreds": false,
+          "alwaysOn": false,
+          "http20Enabled": false,
+          "functionAppScaleLimit": 0,
+          "minimumElasticInstanceCount": 0
+        },
+        "scmSiteAlsoStopped": false,
+        "clientAffinityEnabled": false,
+        "clientCertEnabled": false,
+        "clientCertMode": "Required",
+        "hostNamesDisabled": false,
+        "containerSize": 0,
+        "dailyMemoryTimeQuota": 0,
+        "httpsOnly": true,
+        "redundancyMode": "None",
+        "storageAccountRequired": false,
+        "keyVaultReferenceIdentity": "SystemAssigned"
+      }
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+      "apiVersion": "2021-06-01",
+      "name": "[variables('postgresServerName')]",
+      "location": "[variables('location')]",
+      "sku": {
+        "name": "Standard_B1ms",
+        "tier": "Burstable"
+      },
+      "properties": {
+        "version": "15",
+        "administratorLogin": "[variables('postgresAdminUsername')]",
+        "administratorLoginPassword": "[parameters('postgresAdminPassword')]",
+        "storage": {
+          "storageSizeGB": 32
+        },
+        "backup": {
+          "backupRetentionDays": 7,
+          "geoRedundantBackup": "Disabled"
+        },
+        "network": {
+          "publicNetworkAccess": "Enabled"
+        },
+        "highAvailability": {
+          "mode": "Disabled"
+        },
+        "maintenanceWindow": {
+          "customWindow": "Disabled",
+          "dayOfWeek": 0,
+          "startHour": 0,
+          "startMinute": 0
+        }
+      }
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers/databases",
+      "apiVersion": "2021-06-01",
+      "name": "[concat(variables('postgresServerName'), '/helpsavta')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName'))]"
+      ],
+      "properties": {
+        "charset": "UTF8",
+        "collation": "en_US.utf8"
+      }
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers/firewallRules",
+      "apiVersion": "2021-06-01",
+      "name": "[concat(variables('postgresServerName'), '/AllowAzureServices')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName'))]"
+      ],
+      "properties": {
+        "startIpAddress": "0.0.0.0",
+        "endIpAddress": "0.0.0.0"
+      }
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[variables('applicationInsightsName')]",
+      "location": "[variables('location')]",
+      "kind": "web",
+      "properties": {
+        "Application_Type": "web",
+        "RetentionInDays": 90,
+        "WorkspaceResourceId": null,
+        "IngestionMode": "ApplicationInsights",
+        "publicNetworkAccessForIngestion": "Enabled",
+        "publicNetworkAccessForQuery": "Enabled"
+      }
+    }
+  ],
+  "outputs": {
+    "appServicePlanName": {
+      "type": "string",
+      "value": "[variables('appServicePlanName')]"
+    },
+    "webAppName": {
+      "type": "string",
+      "value": "[variables('webAppName')]"
+    },
+    "webAppUrl": {
+      "type": "string",
+      "value": "[concat('https://', variables('webAppName'), '.azurewebsites.net')]"
+    },
+    "stagingSlotUrl": {
+      "type": "string",
+      "value": "[concat('https://', variables('webAppName'), '-staging.azurewebsites.net')]"
+    },
+    "postgresServerName": {
+      "type": "string",
+      "value": "[variables('postgresServerName')]"
+    },
+    "postgresServerFqdn": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName'))).fullyQualifiedDomainName]"
+    },
+    "applicationInsightsName": {
+      "type": "string",
+      "value": "[variables('applicationInsightsName')]"
+    },
+    "applicationInsightsInstrumentationKey": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))).InstrumentationKey]"
+    },
+    "applicationInsightsConnectionString": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))).ConnectionString]"
+    }
+  }
+}

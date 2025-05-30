@@ -8,10 +8,8 @@ import CalendarControls, { CalendarFilters } from '../../components/calendar/Cal
 import WeeklyView from '../../components/calendar/WeeklyView';
 import RequestDetailsModal from '../../components/requests/RequestDetailsModal';
 import { Button } from '../../components/ui/button';
-import { getErrorMessage } from '../../lib/utils';
-
 const CalendarView: React.FC = () => {
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEventType | null>(null);
+  // const [selectedEvent, setSelectedEvent] = useState<CalendarEventType | null>(null);
   const [showEventDetails, setShowEventDetails] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<TechRequest | null>(null);
   const [filters, setFilters] = useState<CalendarFilters>({});
@@ -75,7 +73,7 @@ const CalendarView: React.FC = () => {
 
   // Handle event clicks
   const handleEventClick = useCallback(async (event: CalendarEventType) => {
-    setSelectedEvent(event);
+    // setSelectedEvent(event);
     
     if (event.type === 'request' && event.requestId) {
       try {
@@ -239,7 +237,7 @@ const CalendarView: React.FC = () => {
           onClose={() => {
             setShowEventDetails(false);
             setSelectedRequest(null);
-            setSelectedEvent(null);
+            // setSelectedEvent(null);
           }}
           onUpdate={handleRequestUpdate}
           showTakeRequestButton={calendarData.userRole === 'SYSTEM_ADMIN' && !selectedRequest.assigned_admin}

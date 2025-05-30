@@ -27,21 +27,27 @@ async function main() {
     where: { username: defaultAdminUsername }
   });
 
-  if (!existingAdmin) {
-    const saltRounds = 12;
-    const password_hash = await bcrypt.hash(defaultAdminPassword, saltRounds);
-
-    const admin = await prisma.adminUser.create({
-      data: {
-        username: defaultAdminUsername,
-        password_hash
-      }
+  if (existingAdmin) {
+    // Delete existing admin to recreate with proper settings
+    await prisma.adminUser.delete({
+      where: { username: defaultAdminUsername }
     });
-
-    console.log(`✅ Created admin user: ${admin.username}`);
-  } else {
-    console.log(`ℹ️  Admin user already exists: ${existingAdmin.username}`);
+    console.log(`🗑️  Deleted existing admin user: ${existingAdmin.username}`);
   }
+
+  const saltRounds = 12;
+  const password_hash = await bcrypt.hash(defaultAdminPassword, saltRounds);
+
+  const admin = await prisma.adminUser.create({
+    data: {
+      username: defaultAdminUsername,
+      password_hash,
+      is_active: true,
+      role: 'SYSTEM_ADMIN'
+    }
+  });
+
+  console.log(`✅ Created admin user: ${admin.username}`);
 
   // Create some sample available slots for the next 7 days
   const today = new Date();

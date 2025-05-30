@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Calendar, 
-  Bell, 
-  Users, 
+import {
+  LayoutDashboard,
+  FileText,
+  Calendar,
+  Bell,
+  Users,
   LogOut,
   Menu,
   X
@@ -17,8 +17,50 @@ import { getErrorMessage } from '../../lib/utils';
 const AdminLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Check authentication status on component mount
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        setIsCheckingAuth(true);
+        const status = await authAPI.status();
+        setIsAuthenticated(status.authenticated);
+        
+        if (!status.authenticated) {
+          navigate('/admin/login');
+        }
+      } catch (error) {
+        console.error('Authentication check failed:', getErrorMessage(error));
+        setIsAuthenticated(false);
+        navigate('/admin/login');
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkAuthStatus();
+  }, [navigate]);
+
+  // Show loading state while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">בודק הרשאות...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (isAuthenticated === false) {
+    return null; // Component will unmount due to navigation
+  }
 
   const handleLogout = async () => {
     try {
