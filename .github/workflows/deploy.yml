@@ -16,7 +16,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
   actions: read
   security-events: write
 
@@ -43,9 +42,7 @@ jobs:
       - name: Azure Login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Install frontend dependencies
         working-directory: frontend
@@ -73,7 +70,7 @@ jobs:
       - name: Login to Azure Container Registry
         uses: azure/docker-login@v2
         with:
-          login-server: ${{ secrets.AZURE_CONTAINER_REGISTRY_URL }}
+          login-server: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
           username: ${{ secrets.AZURE_CONTAINER_REGISTRY_USERNAME }}
           password: ${{ secrets.AZURE_CONTAINER_REGISTRY_PASSWORD }}
 
@@ -84,26 +81,17 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ${{ secrets.AZURE_CONTAINER_REGISTRY_URL }}/helpsavta:${{ github.sha }}
-            ${{ secrets.AZURE_CONTAINER_REGISTRY_URL }}/helpsavta:latest
+            ${{ secrets.AZURE_CONTAINER_REGISTRY }}/helpsavta-backend:${{ github.sha }}
+            ${{ secrets.AZURE_CONTAINER_REGISTRY }}/helpsavta-backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Deploy to Azure Container Apps
-        uses: azure/container-apps-deploy-action@v2
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v3
         with:
-          appSourcePath: .
-          containerAppName: ${{ secrets.AZURE_CONTAINER_APP_NAME }}
-          resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
-          imageToDeploy: ${{ secrets.AZURE_CONTAINER_REGISTRY_URL }}/helpsavta:${{ github.sha }}
-          environmentVariables: |
-            NODE_ENV=production
-            PORT=3001
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
-            SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }}
-            SENDGRID_FROM_EMAIL=${{ secrets.SENDGRID_FROM_EMAIL }}
-            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
+          app-name: helpsavta-${{ github.event.inputs.environment || 'staging' }}-backend
+          slot-name: ${{ github.event.inputs.environment == 'production' && 'production' || 'staging' }}
+          images: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/helpsavta-backend:${{ github.sha }}
 
       - name: Run database migrations
         env:
@@ -127,4 +115,4 @@ jobs:
         if: success()
         run: |
           # Keep only the 10 most recent images
-          az acr repository show-tags --name ${{ secrets.AZURE_CONTAINER_REGISTRY_NAME }} --repository helpsavta --orderby time_desc --output tsv | tail -n +11 | xargs -I {} az acr repository delete --name ${{ secrets.AZURE_CONTAINER_REGISTRY_NAME }} --image helpsavta:{} --yes || true
+          az acr repository show-tags --name ${{ secrets.AZURE_CONTAINER_REGISTRY }} --repository helpsavta-backend --orderby time_desc --output tsv | tail -n +11 | xargs -I {} az acr repository delete --name ${{ secrets.AZURE_CONTAINER_REGISTRY }} --image helpsavta-backend:{} --yes || true
