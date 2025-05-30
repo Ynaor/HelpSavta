@@ -83,8 +83,6 @@ jobs:
           tags: |
             ${{ secrets.AZURE_CONTAINER_REGISTRY }}/helpsavta-backend:${{ github.sha }}
             ${{ secrets.AZURE_CONTAINER_REGISTRY }}/helpsavta-backend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
