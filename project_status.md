@@ -71,6 +71,10 @@
   - Updated Dockerfile with pinned package versions
   - Enhanced GitHub workflow permissions with security-events: write
   - Consolidated Docker RUN instructions for security
+- **Docker Security Hardening**: Applied May 30, 2025
+  - Updated backend base image from node:18-alpine to node:22-alpine (latest LTS)
+  - Pinned image to specific digest (sha256:9f3ae04faa4d2188825803bf890792f33cc39033c9241fc6bb201149470436ca)
+  - Resolved high vulnerability and image digest pinning issues
 - **Automated Testing**: Complete test suite with coverage reporting
 - **Security Scanning**: Vulnerability and dependency monitoring
 - **Azure Deployment**: Blue-green deployment with rollback capability

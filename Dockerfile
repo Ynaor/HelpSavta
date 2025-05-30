@@ -1,5 +1,5 @@
 # Backend Dockerfile for HelpSavta
-FROM node:18-alpine AS base
+FROM node:22-alpine@sha256:9f3ae04faa4d2188825803bf890792f33cc39033c9241fc6bb201149470436ca AS base
 
 # Install dependencies only when needed
 FROM base AS deps
