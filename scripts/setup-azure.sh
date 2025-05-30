@@ -172,7 +172,7 @@ az keyvault secret set \
 az keyvault secret set \
     --vault-name "$KEY_VAULT_NAME" \
     --name "email-from" \
-    --value "noreply@helpsavta.co.il" \
+    --value "noreply@helpsavta.com" \
     --output table
 
 # Store email configuration (if provided)
@@ -405,7 +405,7 @@ log "- sendgrid-api-key (placeholder - update with actual API key)"
 log "- email-host (smtp.sendgrid.net)"
 log "- email-port (587)"
 log "- email-user (apikey)"
-log "- email-from (noreply@helpsavta.co.il)"
+log "- email-from (noreply@helpsavta.com)"
 echo ""
 log "${YELLOW}SendGrid Setup Required:${NC}"
 log "1. Create SendGrid account at https://sendgrid.com/"

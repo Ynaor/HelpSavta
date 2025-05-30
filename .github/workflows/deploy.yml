@@ -227,11 +227,51 @@ jobs:
         chmod +x scripts/smoke-tests.sh
         ./scripts/smoke-tests.sh ${{ steps.deploy.outputs.staging-url }}
 
+    - name: Run post-deployment verification
+      run: |
+        echo "Running post-deployment verification tests..."
+        chmod +x scripts/verify-deployment.sh
+        ./scripts/verify-deployment.sh ${{ steps.deploy.outputs.staging-url }}
+
+    - name: Send deployment notification
+      if: always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const deploymentStatus = '${{ job.status }}' === 'success' ? 'successful' : 'failed';
+          const statusEmoji = '${{ job.status }}' === 'success' ? '✅' : '❌';
+          const stagingUrl = '${{ steps.deploy.outputs.staging-url }}';
+          
+          const body = `
+          ## ${statusEmoji} Staging Deployment ${deploymentStatus.charAt(0).toUpperCase() + deploymentStatus.slice(1)}
+          
+          **Environment:** Staging
+          **URL:** ${stagingUrl}
+          **Commit:** ${context.sha.substring(0, 7)}
+          **Branch:** ${context.ref.replace('refs/heads/', '')}
+          **Workflow:** [${context.workflow}](${context.payload.repository.html_url}/actions/runs/${context.runId})
+          
+          ${deploymentStatus === 'successful' ?
+            '🎉 Staging environment is ready for testing!' :
+            '⚠️ Staging deployment failed. Please check the logs for details.'}
+          `;
+          
+          // Create deployment status comment
+          if (context.eventName === 'push') {
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: body
+            });
+          }
+
     - name: Update deployment status
       if: always()
       run: |
         if [ "${{ job.status }}" == "success" ]; then
           echo "✅ Staging deployment successful: ${{ steps.deploy.outputs.staging-url }}"
+          echo "🔗 Staging URL: ${{ steps.deploy.outputs.staging-url }}" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ Staging deployment failed"
           exit 1
@@ -297,6 +337,12 @@ jobs:
         chmod +x scripts/smoke-tests.sh
         ./scripts/smoke-tests.sh ${{ steps.production-swap.outputs.production-url }}
 
+    - name: Run production verification tests
+      run: |
+        echo "Running production verification tests..."
+        chmod +x scripts/verify-deployment.sh
+        ./scripts/verify-deployment.sh ${{ steps.production-swap.outputs.production-url }}
+
     - name: Rollback on failure
       if: failure()
       run: |
@@ -312,11 +358,59 @@ jobs:
         
         echo "Rollback completed"
 
+    - name: Send production deployment notification
+      if: always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const deploymentStatus = '${{ job.status }}' === 'success' ? 'successful' : 'failed';
+          const statusEmoji = '${{ job.status }}' === 'success' ? '🚀' : '❌';
+          const productionUrl = '${{ steps.production-swap.outputs.production-url }}';
+          
+          const body = `
+          ## ${statusEmoji} Production Deployment ${deploymentStatus.charAt(0).toUpperCase() + deploymentStatus.slice(1)}
+          
+          **Environment:** Production
+          **URL:** ${productionUrl}
+          **Commit:** ${context.sha.substring(0, 7)}
+          **Branch:** ${context.ref.replace('refs/heads/', '')}
+          **Workflow:** [${context.workflow}](${context.payload.repository.html_url}/actions/runs/${context.runId})
+          **Deployed At:** ${new Date().toISOString()}
+          
+          ${deploymentStatus === 'successful' ?
+            '🎉 Production deployment completed successfully! The new version is now live.' :
+            '⚠️ Production deployment failed and has been automatically rolled back. Please check the logs.'}
+          `;
+          
+          // Create deployment status comment
+          await github.rest.repos.createCommitComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            commit_sha: context.sha,
+            body: body
+          });
+          
+          // Create GitHub release for successful production deployments
+          if (deploymentStatus === 'successful') {
+            const tagName = `release-${new Date().toISOString().split('T')[0]}-${context.sha.substring(0, 7)}`;
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tagName,
+              name: `Production Release ${tagName}`,
+              body: `Production deployment of commit ${context.sha.substring(0, 7)}\n\n${body}`,
+              draft: false,
+              prerelease: false
+            });
+          }
+
     - name: Update deployment status
       if: always()
       run: |
         if [ "${{ job.status }}" == "success" ]; then
           echo "✅ Production deployment successful: ${{ steps.production-swap.outputs.production-url }}"
+          echo "🚀 Production URL: ${{ steps.production-swap.outputs.production-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "📅 Deployed at: $(date -u)" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ Production deployment failed and rolled back"
           exit 1

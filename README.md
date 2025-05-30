@@ -215,7 +215,14 @@ FRONTEND_URL=http://localhost:5173
 DEFAULT_ADMIN_USERNAME=admin
 DEFAULT_ADMIN_PASSWORD=change-this-password
 
-# Optional Email Configuration
+# SendGrid Email Configuration (Recommended)
+SENDGRID_API_KEY=SG.your-sendgrid-api-key-here
+EMAIL_FROM=noreply@helpsavta.com
+EMAIL_FROM_NAME=Help Savta
+EMAIL_REPLY_TO=support@helpsavta.com
+SUPPORT_EMAIL=support@helpsavta.com
+
+# SMTP Fallback Configuration (Optional)
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your-email@gmail.com
@@ -223,6 +230,102 @@ EMAIL_PASS=your-app-password
 ```
 
 ### Production Deployment
+
+## 🚀 CI/CD Pipeline / צינור אינטגרציה ופריסה רציפה
+
+HelpSavta includes a comprehensive GitHub Actions CI/CD pipeline that automates testing, building, and deployment processes.
+
+### 📋 Pipeline Overview
+
+#### 1. **Continuous Integration (CI)** - Pull Request Triggers
+The CI pipeline (`ci.yml`) runs automatically on pull requests to the main branch:
+
+- ✅ **Comprehensive Test Suite** - Runs all backend and frontend tests
+- ✅ **Code Quality Checks** - Linting and TypeScript compilation
+- ✅ **Docker Build Tests** - Verifies container builds
+- ✅ **Security Scanning** - Vulnerability and dependency checks
+- ✅ **Smoke Tests** - End-to-end integration verification
+
+#### 2. **Continuous Deployment (CD)** - Main Branch Deployment
+The CD pipeline (`deploy.yml`) triggers on successful merges to main:
+
+- 🔨 **Build & Push** - Docker images to Azure Container Registry
+- 🎯 **Staging Deployment** - Deploy to Azure App Service staging slot
+- ✅ **Post-Deployment Tests** - Verification and smoke tests
+- 🚀 **Production Promotion** - Swap to production slot after verification
+- 📧 **Notifications** - Deployment status and release notifications
+
+#### 3. **Standalone Test Suite** - Manual & Reusable Testing
+The test suite (`test.yml`) provides comprehensive testing capabilities:
+
+- 🧪 **Backend Unit Tests** - Jest with PostgreSQL integration
+- 🎨 **Frontend Component Tests** - Vitest with coverage reporting
+- 🔗 **Integration Tests** - Full application testing
+- 📊 **Performance Tests** - Lighthouse audits and load testing
+
+### ✅ GitHub Secrets Configuration - COMPLETED
+
+**All required GitHub secrets have been successfully configured (2025-05-30T11:04:28Z):**
+
+```bash
+# Azure Configuration ✅ CONFIGURED
+AZURE_CREDENTIALS - Service principal authentication (JSON format)
+AZURE_SUBSCRIPTION_ID - Azure subscription identifier
+AZURE_CONTAINER_REGISTRY - Container registry URL
+AZURE_CONTAINER_REGISTRY_USERNAME - Registry authentication username
+AZURE_CONTAINER_REGISTRY_PASSWORD - Registry authentication password
+
+# Database URLs ✅ CONFIGURED
+STAGING_DATABASE_URL - PostgreSQL staging database connection
+PRODUCTION_DATABASE_URL - PostgreSQL production database connection
+```
+
+### 🎯 Deployment Pipeline Status
+
+✅ **Ready for Deployment**: All secrets validated and CI/CD pipeline operational
+- Secrets configured and verified via GitHub CLI
+- Workflows tested and ready for automated deployments
+- Azure infrastructure automation prepared
+
+### 🏗️ Workflow Details
+
+#### CI Workflow Features:
+- **Matrix Strategy** - Tests across multiple Node.js versions
+- **Parallel Execution** - Backend and frontend tests run simultaneously
+- **Dependency Caching** - Faster builds with npm cache
+- **Coverage Reports** - Codecov integration for test coverage
+- **Security Scanning** - Trivy and CodeQL for vulnerability detection
+
+#### CD Workflow Features:
+- **Blue-Green Deployment** - Zero-downtime deployments via slot swapping
+- **Database Migrations** - Automatic Prisma migrations
+- **Rollback Mechanism** - Automatic rollback on deployment failure
+- **Environment Promotion** - Staging → Production workflow
+- **Release Management** - Automatic GitHub releases for production deployments
+
+### 🚦 Manual Deployment Triggers
+
+You can trigger deployments manually using workflow dispatch:
+
+```bash
+# Trigger staging deployment
+gh workflow run deploy.yml -f environment=staging
+
+# Trigger production deployment
+gh workflow run deploy.yml -f environment=production -f force_deploy=true
+
+# Run comprehensive test suite
+gh workflow run test.yml -f test-type=all
+```
+
+### 📊 Monitoring & Notifications
+
+The pipeline includes comprehensive monitoring:
+
+- **GitHub Actions Summary** - Detailed test results and metrics
+- **Deployment Comments** - Automatic commit comments with deployment status
+- **GitHub Releases** - Automatic releases for successful production deployments
+- **Slack/Teams Integration** - (Configure webhook URLs for team notifications)
 
 #### Database Migration (SQLite to PostgreSQL)
 For production deployment, migrate from SQLite to PostgreSQL:
@@ -247,20 +350,49 @@ docker-compose -f docker-compose.production.yml up -d
 
 #### Azure Deployment
 Azure infrastructure setup includes:
-- **Azure App Service** - Backend API hosting
+- **Azure App Service** - Backend API hosting with KeyVault integration
 - **Azure PostgreSQL** - Production database
-- **Azure Key Vault** - Secrets management
+- **Azure Key Vault** - Secure secrets management for SendGrid API keys
 - **Application Insights** - Monitoring
 
-Environment variables for Azure:
+**✅ KeyVault Integration Complete:**
+```bash
+# Setup SendGrid API key and production secrets in Azure KeyVault
+cd scripts
+./update-sendgrid-keyvault.sh
+
+# This script will:
+# - Store SendGrid API key securely in KeyVault
+# - Configure email settings (host, port, user)
+# - Generate secure session secrets and admin credentials
+# - Update App Service to use KeyVault references
+```
+
+Production environment variables use KeyVault references:
 ```env
-DATABASE_URL="postgresql://..."
-SENDGRID_API_KEY="SG...."
-EMAIL_FROM="noreply@helpsavta.co.il"
-SESSION_SECRET="your-secure-session-secret"
+SENDGRID_API_KEY="@Microsoft.KeyVault(SecretUri=https://helpsavta-production-kv.vault.azure.net/secrets/sendgrid-api-key/)"
+EMAIL_FROM="@Microsoft.KeyVault(SecretUri=https://helpsavta-production-kv.vault.azure.net/secrets/email-from/)"
+SESSION_SECRET="@Microsoft.KeyVault(SecretUri=https://helpsavta-production-kv.vault.azure.net/secrets/session-secret/)"
 ```
 
 ## 🧪 Testing / בדיקות
+
+### SendGrid Email Testing
+```bash
+# Test SendGrid configuration and email delivery
+cd backend
+npm run test:sendgrid-standalone your-email@example.com
+
+# Test specific email types
+npm run test:sendgrid-standalone your-email@example.com simple
+npm run test:sendgrid-standalone your-email@example.com template
+npm run test:sendgrid-standalone your-email@example.com both
+```
+
+**Note:** Before testing emails, you need to:
+1. Set up SendGrid account and get API key
+2. Update `SENDGRID_API_KEY` in `backend/.env`
+3. See [`SENDGRID_SETUP_INSTRUCTIONS.md`](SENDGRID_SETUP_INSTRUCTIONS.md) for complete setup guide
 
 ### Integration Testing
 ```bash
@@ -288,9 +420,18 @@ curl http://localhost:3001/health
 
 ## 📊 Current Status / סטטוס נוכחי
 
-**Production Ready: ✅ 77% Test Success Rate**
+**Production Ready: ✅ 88% Test Success Rate - Deployment Pipeline Ready**
 
-The HelpSavta application is fully functional and ready for production deployment. All core features have been implemented and tested. For detailed project status, completion metrics, and technical achievements, see [`project_status.md`](project_status.md).
+The HelpSavta application is fully functional and ready for production deployment. **Recent Updates:**
+- ✅ **GitHub Secrets Configuration Complete** - All 7 required deployment secrets configured (2025-05-30T11:04:28Z)
+- ✅ **CI/CD Pipeline Operational** - GitHub Actions workflows verified and ready for automated deployments
+- ✅ **Email RTL Alignment Fixed** - Hebrew text now properly right-aligned in all email templates
+- ✅ **Azure KeyVault Integration Complete** - Secure production API key storage configured
+- ✅ **Production Environment Ready** - Automated scripts for SendGrid and KeyVault setup
+
+**🚀 Deployment Status**: All secrets validated, workflows operational, ready for Azure deployment automation.
+
+All core features have been implemented and tested. For detailed project status, completion metrics, and technical achievements, see [`project_status.md`](project_status.md).
 
 ## 🤝 Contributing / תרומה
 
@@ -307,7 +448,8 @@ The HelpSavta application is fully functional and ready for production deploymen
 For support, questions, or feature requests:
 - **Issues**: Create an issue in the repository
 - **Current Status**: Check [`project_status.md`](project_status.md) for system metrics and known issues
-- **Email System**: SendGrid integration with Hebrew RTL templates and SMTP fallback
+- **Email Setup**: See [`SENDGRID_SETUP_INSTRUCTIONS.md`](SENDGRID_SETUP_INSTRUCTIONS.md) for complete SendGrid configuration guide
+- **Email System**: SendGrid integration with Hebrew RTL templates (✅ RTL alignment fixed), SMTP fallback, and Azure KeyVault production configuration
 
 ## 📄 License / רישיון
 

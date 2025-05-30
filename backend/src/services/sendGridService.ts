@@ -33,7 +33,7 @@ class SendGridEmailService {
   private initializeSendGrid(): void {
     try {
       const apiKey = process.env.SENDGRID_API_KEY;
-      const fromEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@helpsavta.co.il';
+      const fromEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@helpsavta.com';
       const fromName = process.env.EMAIL_FROM_NAME || 'Help Savta';
       const replyToEmail = process.env.EMAIL_REPLY_TO || process.env.SUPPORT_EMAIL;
 

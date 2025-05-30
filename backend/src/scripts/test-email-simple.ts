@@ -145,10 +145,10 @@ async function testEmailService(): Promise<void> {
   }
 
   console.log('\n📋 Recommended Configuration:');
-  console.log('   EMAIL_FROM=noreply@helpsavta.co.il');
+  console.log('   EMAIL_FROM=noreply@helpsavta.com');
   console.log('   EMAIL_FROM_NAME=Help Savta');
-  console.log('   EMAIL_REPLY_TO=support@helpsavta.co.il');
-  console.log('   SUPPORT_EMAIL=support@helpsavta.co.il');
+  console.log('   EMAIL_REPLY_TO=support@helpsavta.com');
+  console.log('   SUPPORT_EMAIL=support@helpsavta.com');
 
   console.log(`\n✅ Test completed at: ${new Date().toLocaleString()}`);
 }

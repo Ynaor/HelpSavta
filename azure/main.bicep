@@ -303,6 +303,58 @@ resource backendWebApp 'Microsoft.Web/sites@2022-09-01' = {
           name: 'KEY_VAULT_URL'
           value: keyVault.properties.vaultUri
         }
+        {
+          name: 'SENDGRID_API_KEY'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVault.properties.vaultUri}secrets/sendgrid-api-key/)'
+        }
+        {
+          name: 'EMAIL_FROM'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVault.properties.vaultUri}secrets/email-from/)'
+        }
+        {
+          name: 'EMAIL_HOST'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVault.properties.vaultUri}secrets/email-host/)'
+        }
+        {
+          name: 'EMAIL_PORT'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVault.properties.vaultUri}secrets/email-port/)'
+        }
+        {
+          name: 'EMAIL_USER'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVault.properties.vaultUri}secrets/email-user/)'
+        }
+        {
+          name: 'EMAIL_PASS'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVault.properties.vaultUri}secrets/sendgrid-api-key/)'
+        }
+        {
+          name: 'SESSION_SECRET'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVault.properties.vaultUri}secrets/session-secret/)'
+        }
+        {
+          name: 'DEFAULT_ADMIN_USERNAME'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVault.properties.vaultUri}secrets/admin-username/)'
+        }
+        {
+          name: 'DEFAULT_ADMIN_PASSWORD'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVault.properties.vaultUri}secrets/admin-password/)'
+        }
+        {
+          name: 'EMAIL_FROM_NAME'
+          value: 'Help Savta'
+        }
+        {
+          name: 'EMAIL_REPLY_TO'
+          value: 'support@helpsavta.com'
+        }
+        {
+          name: 'SUPPORT_EMAIL'
+          value: 'support@helpsavta.com'
+        }
+        {
+          name: 'EMAIL_SECURE'
+          value: 'true'
+        }
       ]
       connectionStrings: [
         {

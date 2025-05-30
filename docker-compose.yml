@@ -61,10 +61,10 @@ services:
       DEFAULT_ADMIN_PASSWORD: admin123dev
       # SendGrid Email Configuration (Primary)
       # SENDGRID_API_KEY: SG.your-sendgrid-api-key-here
-      EMAIL_FROM: noreply@helpsavta-dev.com
+      EMAIL_FROM: noreply@helpsavta.com
       EMAIL_FROM_NAME: Help Savta (Dev)
-      EMAIL_REPLY_TO: support@helpsavta-dev.com
-      SUPPORT_EMAIL: support@helpsavta-dev.com
+      EMAIL_REPLY_TO: support@helpsavta.com
+      SUPPORT_EMAIL: support@helpsavta.com
       SUPPORT_PHONE: 03-1234567
       # SMTP Fallback for development
       EMAIL_HOST: smtp.ethereal.email
@@ -132,7 +132,7 @@ services:
     image: dpage/pgadmin4:latest
     container_name: helpsavta-pgadmin-dev
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@helpsavta-dev.com
+      PGADMIN_DEFAULT_EMAIL: admin@helpsavta.com
       PGADMIN_DEFAULT_PASSWORD: pgadmin123
       PGADMIN_LISTEN_PORT: 80
     ports:

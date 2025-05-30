@@ -105,6 +105,9 @@ validate_api_key() {
 update_keyvault_secrets() {
     local sendgrid_api_key="$1"
     local sender_email="$2"
+    local session_secret="$3"
+    local admin_username="$4"
+    local admin_password="$5"
     
     print_info "עדכון סודות ב-Key Vault..."
     
@@ -132,6 +135,50 @@ update_keyvault_secrets() {
             print_status "email-from עודכן ל: $sender_email"
         else
             print_error "שגיאה בעדכון email-from"
+            return 1
+        fi
+    fi
+    
+    # Update session secret if provided
+    if [ -n "$session_secret" ]; then
+        print_info "עדכון session-secret..."
+        if az keyvault secret set \
+            --vault-name "$KEY_VAULT_NAME" \
+            --name "session-secret" \
+            --value "$session_secret" \
+            --output none; then
+            print_status "session-secret עודכן"
+        else
+            print_error "שגיאה בעדכון session-secret"
+            return 1
+        fi
+    fi
+    
+    # Update admin credentials if provided
+    if [ -n "$admin_username" ]; then
+        print_info "עדכון admin-username..."
+        if az keyvault secret set \
+            --vault-name "$KEY_VAULT_NAME" \
+            --name "admin-username" \
+            --value "$admin_username" \
+            --output none; then
+            print_status "admin-username עודכן"
+        else
+            print_error "שגיאה בעדכון admin-username"
+            return 1
+        fi
+    fi
+    
+    if [ -n "$admin_password" ]; then
+        print_info "עדכון admin-password..."
+        if az keyvault secret set \
+            --vault-name "$KEY_VAULT_NAME" \
+            --name "admin-password" \
+            --value "$admin_password" \
+            --output none; then
+            print_status "admin-password עודכן"
+        else
+            print_error "שגיאה בעדכון admin-password"
             return 1
         fi
     fi
@@ -167,7 +214,7 @@ update_keyvault_secrets() {
 verify_secrets() {
     print_info "וידוא סודות ב-Key Vault..."
     
-    local secrets=("sendgrid-api-key" "email-host" "email-port" "email-user" "email-from")
+    local secrets=("sendgrid-api-key" "email-host" "email-port" "email-user" "email-from" "session-secret" "admin-username" "admin-password")
     
     for secret in "${secrets[@]}"; do
         if az keyvault secret show --vault-name "$KEY_VAULT_NAME" --name "$secret" --query "value" -o tsv &>/dev/null; then
@@ -227,6 +274,16 @@ restart_app_service() {
     fi
 }
 
+# Generate secure session secret
+generate_session_secret() {
+    openssl rand -base64 48
+}
+
+# Generate secure admin password
+generate_admin_password() {
+    openssl rand -base64 16 | tr -d "=+/" | cut -c1-16
+}
+
 # Main execution
 main() {
     echo ""
@@ -253,10 +310,47 @@ main() {
     
     # Get sender email (optional)
     echo -e "${YELLOW}הזן כתובת אימייל של השולח (אופציונלי):${NC}"
-    echo "דוגמה: noreply@helpsavta.co.il"
+    echo "דוגמה: noreply@helpsavta.com"
     echo "השאר ריק כדי לשמור על ההגדרה הנוכחית"
     echo ""
     read -p "From Email: " SENDER_EMAIL
+    
+    echo ""
+    
+    # Get session secret (optional)
+    echo -e "${YELLOW}הזן Session Secret (אופציונלי):${NC}"
+    echo "השאר ריק כדי ליצור אחד אוטומטית"
+    echo ""
+    read -s -p "Session Secret: " SESSION_SECRET
+    echo ""
+    
+    if [ -z "$SESSION_SECRET" ]; then
+        SESSION_SECRET=$(generate_session_secret)
+        print_info "נוצר Session Secret אוטומטית"
+    fi
+    
+    echo ""
+    
+    # Get admin credentials (optional)
+    echo -e "${YELLOW}הזן שם משתמש אדמין (אופציונלי):${NC}"
+    echo "השאר ריק כדי לשמור על ההגדרה הנוכחית"
+    echo ""
+    read -p "Admin Username: " ADMIN_USERNAME
+    
+    if [ -n "$ADMIN_USERNAME" ]; then
+        echo ""
+        echo -e "${YELLOW}הזן סיסמת אדמין (אופציונלי):${NC}"
+        echo "השאר ריק כדי ליצור אחת אוטומטית"
+        echo ""
+        read -s -p "Admin Password: " ADMIN_PASSWORD
+        echo ""
+        
+        if [ -z "$ADMIN_PASSWORD" ]; then
+            ADMIN_PASSWORD=$(generate_admin_password)
+            print_info "נוצרה סיסמת אדמין אוטומטית: $ADMIN_PASSWORD"
+            print_warning "שמור את הסיסמה במקום בטוח!"
+        fi
+    fi
     
     echo ""
     
@@ -266,6 +360,9 @@ main() {
     echo "Resource Group: $RESOURCE_GROUP"
     if [ -n "$SENDER_EMAIL" ]; then
         echo "From Email: $SENDER_EMAIL"
+    fi
+    if [ -n "$ADMIN_USERNAME" ]; then
+        echo "Admin Username: $ADMIN_USERNAME"
     fi
     echo ""
     read -p "המשך? (y/N): " -r
@@ -277,7 +374,7 @@ main() {
     echo ""
     
     # Update secrets
-    if update_keyvault_secrets "$SENDGRID_API_KEY" "$SENDER_EMAIL"; then
+    if update_keyvault_secrets "$SENDGRID_API_KEY" "$SENDER_EMAIL" "$SESSION_SECRET" "$ADMIN_USERNAME" "$ADMIN_PASSWORD"; then
         print_status "כל הסודות עודכנו בהצלחה"
     else
         print_error "שגיאה בעדכון סודות"
@@ -303,18 +400,25 @@ main() {
     fi
     
     echo ""
-    echo -e "${GREEN}🎉 הגדרת SendGrid הושלמה בהצלחה!${NC}"
+    echo -e "${GREEN}🎉 הגדרת SendGrid והגדרות ייצור הושלמה בהצלחה!${NC}"
     echo ""
     echo "השלבים הבאים:"
     echo "1. בדוק שההגדרות נטענו ב-App Service (כמה דקות)"
     echo "2. הרץ בדיקת אימייל: node scripts/test-sendgrid-integration.js"
     echo "3. בדוק לוגים ב-Application Insights"
+    echo "4. עדכן את משתני הסביבה ב-App Service להשתמש ב-KeyVault references"
     echo ""
     echo "URLs חשובים:"
     echo "• Azure Portal: https://portal.azure.com"
     echo "• Key Vault: https://portal.azure.com/#@/resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.KeyVault/vaults/$KEY_VAULT_NAME"
     echo "• App Service: https://portal.azure.com/#@/resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.Web/sites/helpsavta-production-backend"
     echo ""
+    if [ -n "$ADMIN_PASSWORD" ] && [ -n "$ADMIN_USERNAME" ]; then
+        echo -e "${YELLOW}זכור לשמור את פרטי האדמין:${NC}"
+        echo "Username: $ADMIN_USERNAME"
+        echo "Password: $ADMIN_PASSWORD"
+        echo ""
+    fi
 }
 
 # Show help

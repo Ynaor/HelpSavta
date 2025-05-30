@@ -319,7 +319,7 @@ async function sendTestEmail(transporter, templateType, recipientEmail) {
   }
   
   const mailOptions = {
-    from: `"Help Savta (בדיקה)" <noreply@helpsavta.co.il>`,
+    from: `"Help Savta (בדיקה)" <noreply@helpsavta.com>`,
     to: recipientEmail,
     subject: template.subject,
     text: template.text,
@@ -455,12 +455,12 @@ function showHelp() {
   log('  node test-sendgrid-integration.js [email]', 'white');
   log('\nדוגמאות:', 'cyan');
   log('  node test-sendgrid-integration.js', 'white');
-  log('  node test-sendgrid-integration.js admin@helpsavta.co.il', 'white');
+  log('  node test-sendgrid-integration.js admin@helpsavta.com', 'white');
   log('\nמשתני סביבה נדרשים:', 'cyan');
   log('  SENDGRID_API_KEY - SendGrid API Key', 'white');
   log('\nדוגמה:', 'cyan');
   log('  export SENDGRID_API_KEY="SG.your-api-key"', 'white');
-  log('  node test-sendgrid-integration.js admin@helpsavta.co.il', 'white');
+  log('  node test-sendgrid-integration.js admin@helpsavta.com', 'white');
 }
 
 // Run tests or show help
