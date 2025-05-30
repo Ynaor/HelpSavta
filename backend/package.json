@@ -1,5 +1,5 @@
 {
-  "name": "Help-Savta-backend",
+  "name": "help-savta-backend",
   "version": "1.0.0",
   "description": "Backend for Technical Help Volunteer Platform - עזרה טכנית בהתנדבות",
   "main": "dist/server.js",
@@ -21,7 +21,13 @@
     "migrate:postgresql": "ts-node scripts/migrate-to-postgresql.ts",
     "backup-restore": "ts-node scripts/backup-restore.ts",
     "production:setup": "ts-node scripts/production-setup.ts",
-    "db:monitor": "ts-node scripts/db-monitor.ts"
+    "db:monitor": "ts-node scripts/db-monitor.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:email": "ts-node src/scripts/test-email-service.ts",
+    "test:email-simple": "ts-node src/scripts/test-email-simple.ts",
+    "test:sendgrid": "node ../scripts/test-sendgrid-integration.js"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -36,6 +42,7 @@
   "license": "MIT",
   "dependencies": {
     "@prisma/client": "^5.7.1",
+    "@sendgrid/mail": "^8.1.5",
     "@types/nodemailer": "^6.4.17",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
@@ -57,9 +64,15 @@
     "@types/express": "^4.17.21",
     "@types/express-session": "^1.17.10",
     "@types/handlebars": "^4.0.40",
+    "@types/jest": "^29.5.8",
     "@types/node": "^20.10.5",
     "@types/pg": "^8.10.9",
+    "@types/sendgrid": "^2.0.31",
+    "@types/supertest": "^2.0.16",
+    "jest": "^29.7.0",
     "nodemon": "^3.0.2",
+    "supertest": "^6.3.3",
+    "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }

@@ -1,0 +1,269 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run security scan daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  dependency-scan:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        directory: ['backend', 'frontend']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: ${{ matrix.directory }}/package-lock.json
+
+    - name: Install dependencies
+      working-directory: ${{ matrix.directory }}
+      run: npm ci
+
+    - name: Run npm audit
+      working-directory: ${{ matrix.directory }}
+      run: |
+        echo "Running npm audit for ${{ matrix.directory }}..."
+        npm audit --audit-level=moderate || exit_code=$?
+        if [ ${exit_code:-0} -ne 0 ]; then
+          echo "::warning::npm audit found vulnerabilities in ${{ matrix.directory }}"
+          npm audit --audit-level=moderate --json > audit-results.json
+          cat audit-results.json
+        fi
+
+    - name: Check for critical vulnerabilities
+      working-directory: ${{ matrix.directory }}
+      run: |
+        echo "Checking for critical vulnerabilities..."
+        npm audit --audit-level=critical
+
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Run GitLeaks
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  dockerfile-scan:
+    name: Dockerfile Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Hadolint on backend Dockerfile
+      uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: Dockerfile
+        failure-threshold: warning
+
+    - name: Run Hadolint on frontend Dockerfile
+      uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: frontend/Dockerfile
+        failure-threshold: warning
+
+  code-scan:
+    name: Static Code Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: javascript, typescript
+
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+
+  container-scan:
+    name: Container Image Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build backend image for scanning
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: false
+        tags: helpsavta-backend:scan
+        load: true
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build frontend image for scanning
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        file: ./frontend/Dockerfile
+        push: false
+        tags: helpsavta-frontend:scan
+        load: true
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Scan backend image with Trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'helpsavta-backend:scan'
+        format: 'sarif'
+        output: 'backend-trivy-results.sarif'
+
+    - name: Scan frontend image with Trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'helpsavta-frontend:scan'
+        format: 'sarif'
+        output: 'frontend-trivy-results.sarif'
+
+    - name: Upload backend Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'backend-trivy-results.sarif'
+        category: 'backend-container'
+
+    - name: Upload frontend Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'frontend-trivy-results.sarif'
+        category: 'frontend-container'
+
+  infrastructure-scan:
+    name: Infrastructure Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Scan Azure Bicep templates
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'config'
+        scan-ref: 'azure/'
+        format: 'sarif'
+        output: 'infrastructure-trivy-results.sarif'
+
+    - name: Upload infrastructure scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'infrastructure-trivy-results.sarif'
+        category: 'infrastructure'
+
+  dependency-update-check:
+    name: Check for Dependency Updates
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Check backend dependencies
+      working-directory: backend
+      run: |
+        echo "Checking backend dependencies..."
+        npx npm-check-updates --format group
+        echo "::notice::Backend dependency status checked"
+
+    - name: Check frontend dependencies
+      working-directory: frontend
+      run: |
+        echo "Checking frontend dependencies..."
+        npx npm-check-updates --format group
+        echo "::notice::Frontend dependency status checked"
+
+    - name: Create dependency update issue
+      if: github.event_name == 'schedule'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const title = `Scheduled Dependency Update Check - ${new Date().toISOString().split('T')[0]}`;
+          const body = `
+          ## Automated Dependency Update Check
+          
+          This issue was automatically created to track potential dependency updates.
+          
+          ### Actions Taken:
+          - ✅ Security vulnerabilities scanned
+          - ✅ Dependencies checked for updates
+          - ✅ Container images scanned
+          
+          ### Next Steps:
+          1. Review the security scan results in the Actions tab
+          2. Check for any critical vulnerabilities that need immediate attention
+          3. Review dependency updates and plan upgrade strategy
+          4. Update dependencies if necessary
+          
+          **Note:** This issue will be automatically closed when the next scan runs if no critical issues are found.
+          `;
+          
+          // Check if similar issue already exists
+          const issues = await github.rest.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            labels: ['security', 'dependencies'],
+            state: 'open'
+          });
+          
+          const existingIssue = issues.data.find(issue => 
+            issue.title.includes('Scheduled Dependency Update Check')
+          );
+          
+          if (!existingIssue) {
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['security', 'dependencies', 'automated']
+            });
+          }

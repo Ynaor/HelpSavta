@@ -124,13 +124,10 @@ HelpSavta/
 │   │   └── types/             # TypeScript type definitions
 │   └── package.json
 ├── README.md                    # This file
-├── DEPLOYMENT.md               # Comprehensive production deployment guide
-├── MIGRATION_GUIDE.md          # Database migration from SQLite to PostgreSQL
-├── project_status.md           # Current system metrics and status dashboard
-├── road-to-production.md       # Complete production roadmap and progress tracking
+├── project_status.md           # Current development status for coding agents
 ├── start.sh                    # Development setup script
-├── test-integration.sh         # Integration testing script
-├── test-admin-features.sh      # Admin features testing script
+├── docker-compose.yml          # Docker development environment
+├── docker-compose.production.yml # Docker production environment
 └── package.json               # Root package.json
 ```
 
@@ -226,17 +223,42 @@ EMAIL_PASS=your-app-password
 ```
 
 ### Production Deployment
-For comprehensive production deployment instructions, see:
-- **[`DEPLOYMENT.md`](DEPLOYMENT.md)** - Complete Azure infrastructure setup, CI/CD, and production deployment
-- **[`MIGRATION_GUIDE.md`](MIGRATION_GUIDE.md)** - Database migration from SQLite to PostgreSQL
-- **[`road-to-production.md`](road-to-production.md)** - Complete roadmap with progress tracking
 
-**Quick Development to Production Path:**
-1. **Database Migration**: Follow [`MIGRATION_GUIDE.md`](MIGRATION_GUIDE.md) to migrate from SQLite to PostgreSQL
-2. **Infrastructure Setup**: Use [`DEPLOYMENT.md`](DEPLOYMENT.md) for Azure infrastructure or other cloud platforms
-3. **Progress Tracking**: Monitor deployment progress with [`road-to-production.md`](road-to-production.md)
-4. **Environment Configuration**: Set production environment variables
-5. **Build & Deploy**: Build applications and deploy to production environment
+#### Database Migration (SQLite to PostgreSQL)
+For production deployment, migrate from SQLite to PostgreSQL:
+
+```bash
+# Production database setup
+cd backend
+npm run db:migrate:postgresql
+
+# Update environment variables for PostgreSQL
+DATABASE_URL="postgresql://username:password@host:5432/database"
+```
+
+#### Docker Production Deployment
+```bash
+# Build production images
+docker-compose -f docker-compose.production.yml build
+
+# Deploy with production configuration
+docker-compose -f docker-compose.production.yml up -d
+```
+
+#### Azure Deployment
+Azure infrastructure setup includes:
+- **Azure App Service** - Backend API hosting
+- **Azure PostgreSQL** - Production database
+- **Azure Key Vault** - Secrets management
+- **Application Insights** - Monitoring
+
+Environment variables for Azure:
+```env
+DATABASE_URL="postgresql://..."
+SENDGRID_API_KEY="SG...."
+EMAIL_FROM="noreply@helpsavta.co.il"
+SESSION_SECRET="your-secure-session-secret"
+```
 
 ## 🧪 Testing / בדיקות
 
@@ -284,10 +306,8 @@ The HelpSavta application is fully functional and ready for production deploymen
 
 For support, questions, or feature requests:
 - **Issues**: Create an issue in the repository
-- **Deployment Help**: See [`DEPLOYMENT.md`](DEPLOYMENT.md) for comprehensive deployment guidance
-- **Database Migration**: See [`MIGRATION_GUIDE.md`](MIGRATION_GUIDE.md) for PostgreSQL migration
 - **Current Status**: Check [`project_status.md`](project_status.md) for system metrics and known issues
-- **Production Roadmap**: Review [`road-to-production.md`](road-to-production.md) for progress tracking
+- **Email System**: SendGrid integration with Hebrew RTL templates and SMTP fallback
 
 ## 📄 License / רישיון
 

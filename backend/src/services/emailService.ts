@@ -3,6 +3,15 @@ import { prisma } from '../server';
 import { renderEmailTemplate } from '../config/emailTemplateConfig';
 import { templateService } from './templateService';
 
+// Dynamic import for SendGrid to avoid breaking if not available
+let sendGridService: any = null;
+try {
+  // Only import if @sendgrid/mail is available
+  sendGridService = require('./sendGridService').sendGridService;
+} catch (error) {
+  console.log('📧 SendGrid service not available, using SMTP fallback only');
+}
+
 interface EmailConfig {
   host: string;
   port: number;
@@ -57,9 +66,28 @@ class EmailService {
    * שליחת אימייל יצירת בקשה באמצעות תבנית
    */
   async sendRequestCreatedEmail(request: any): Promise<boolean> {
+    // Try SendGrid first if available
+    if (sendGridService && sendGridService.isReady && sendGridService.isReady()) {
+      console.log('📧 Using SendGrid for request created email');
+      try {
+        return await sendGridService.sendRequestCreatedEmail(request);
+      } catch (error) {
+        console.error('❌ SendGrid failed, falling back to SMTP:', error);
+      }
+    }
+
+    // Fallback to SMTP
+    console.log('📧 Using SMTP for request created email');
+    return await this.sendRequestCreatedEmailSMTP(request);
+  }
+
+  /**
+   * SMTP fallback for request created email
+   */
+  private async sendRequestCreatedEmailSMTP(request: any): Promise<boolean> {
     if (!this.isConfigured || !this.transporter) {
       console.log('📧 Email service not configured - logging notification instead');
-      await this.logNotification('email', request.email, 
+      await this.logNotification('email', request.email,
         `Request created email for #${request.id}`, 'not_sent');
       return false;
     }
@@ -88,17 +116,17 @@ class EmailService {
       await this.transporter.sendMail(mailOptions);
       
       // Log successful notification
-      await this.logNotification('email', request.email, 
-        `Request created email sent for #${request.id}`, 'sent');
+      await this.logNotification('email', request.email,
+        `Request created email sent for #${request.id} (SMTP)`, 'sent');
       
-      console.log(`📧 Request created email sent successfully to ${request.email}`);
+      console.log(`📧 SMTP: Request created email sent successfully to ${request.email}`);
       return true;
     } catch (error) {
-      console.error('❌ Failed to send request created email:', error);
+      console.error('❌ Failed to send request created email via SMTP:', error);
       
       // Log failed notification
-      await this.logNotification('email', request.email, 
-        `Failed to send request created email for #${request.id}`, 'failed');
+      await this.logNotification('email', request.email,
+        `Failed to send request created email for #${request.id} (SMTP)`, 'failed');
       
       return false;
     }
@@ -109,6 +137,25 @@ class EmailService {
    * שליחת אימייל עדכון סטטוס באמצעות תבנית
    */
   async sendStatusUpdateEmailTemplate(request: any, admin?: any): Promise<boolean> {
+    // Try SendGrid first if available
+    if (sendGridService && sendGridService.isReady && sendGridService.isReady()) {
+      console.log('📧 Using SendGrid for status update email');
+      try {
+        return await sendGridService.sendStatusUpdateEmail(request, admin);
+      } catch (error) {
+        console.error('❌ SendGrid failed, falling back to SMTP:', error);
+      }
+    }
+
+    // Fallback to SMTP
+    console.log('📧 Using SMTP for status update email');
+    return await this.sendStatusUpdateEmailSMTP(request, admin);
+  }
+
+  /**
+   * SMTP fallback for status update email
+   */
+  private async sendStatusUpdateEmailSMTP(request: any, admin?: any): Promise<boolean> {
     if (!this.isConfigured || !this.transporter) {
       console.log('📧 Email service not configured - logging notification instead');
       await this.logNotification('email', request.email,
@@ -141,16 +188,16 @@ class EmailService {
       
       // Log successful notification
       await this.logNotification('email', request.email,
-        `Status update email sent for #${request.id}`, 'sent');
+        `Status update email sent for #${request.id} (SMTP)`, 'sent');
       
-      console.log(`📧 Status update email sent successfully to ${request.email}`);
+      console.log(`📧 SMTP: Status update email sent successfully to ${request.email}`);
       return true;
     } catch (error) {
-      console.error('❌ Failed to send status update email:', error);
+      console.error('❌ Failed to send status update email via SMTP:', error);
       
       // Log failed notification
       await this.logNotification('email', request.email,
-        `Failed to send status update email for #${request.id}`, 'failed');
+        `Failed to send status update email for #${request.id} (SMTP)`, 'failed');
       
       return false;
     }
@@ -161,6 +208,25 @@ class EmailService {
    * שליחת אימייל השלמת בקשה באמצעות תבנית
    */
   async sendRequestCompletedEmail(request: any, admin?: any, slot?: any): Promise<boolean> {
+    // Try SendGrid first if available
+    if (sendGridService && sendGridService.isReady && sendGridService.isReady()) {
+      console.log('📧 Using SendGrid for request completed email');
+      try {
+        return await sendGridService.sendRequestCompletedEmail(request, admin, slot);
+      } catch (error) {
+        console.error('❌ SendGrid failed, falling back to SMTP:', error);
+      }
+    }
+
+    // Fallback to SMTP
+    console.log('📧 Using SMTP for request completed email');
+    return await this.sendRequestCompletedEmailSMTP(request, admin, slot);
+  }
+
+  /**
+   * SMTP fallback for request completed email
+   */
+  private async sendRequestCompletedEmailSMTP(request: any, admin?: any, slot?: any): Promise<boolean> {
     if (!this.isConfigured || !this.transporter) {
       console.log('📧 Email service not configured - logging notification instead');
       await this.logNotification('email', request.email,
@@ -193,16 +259,99 @@ class EmailService {
       
       // Log successful notification
       await this.logNotification('email', request.email,
-        `Request completed email sent for #${request.id}`, 'sent');
+        `Request completed email sent for #${request.id} (SMTP)`, 'sent');
       
-      console.log(`📧 Request completed email sent successfully to ${request.email}`);
+      console.log(`📧 SMTP: Request completed email sent successfully to ${request.email}`);
       return true;
     } catch (error) {
-      console.error('❌ Failed to send request completed email:', error);
+      console.error('❌ Failed to send request completed email via SMTP:', error);
       
       // Log failed notification
       await this.logNotification('email', request.email,
-        `Failed to send request completed email for #${request.id}`, 'failed');
+        `Failed to send request completed email for #${request.id} (SMTP)`, 'failed');
+      
+      return false;
+    }
+  }
+
+  /**
+   * Send email verification
+   */
+  async sendEmailVerification(email: string, verificationToken: string, baseUrl: string): Promise<boolean> {
+    // Try SendGrid first if available
+    if (sendGridService && sendGridService.isReady && sendGridService.isReady()) {
+      console.log('📧 Using SendGrid for email verification');
+      try {
+        return await sendGridService.sendEmailVerification(email, verificationToken, baseUrl);
+      } catch (error) {
+        console.error('❌ SendGrid failed, falling back to SMTP:', error);
+      }
+    }
+
+    // Fallback to SMTP
+    console.log('📧 Using SMTP for email verification');
+    return await this.sendEmailVerificationSMTP(email, verificationToken, baseUrl);
+  }
+
+  /**
+   * SMTP fallback for email verification
+   */
+  private async sendEmailVerificationSMTP(email: string, verificationToken: string, baseUrl: string): Promise<boolean> {
+    if (!this.isConfigured || !this.transporter) {
+      console.log('📧 Email service not configured - cannot send verification email');
+      return false;
+    }
+
+    try {
+      const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
+      
+      const subject = 'אימות כתובת אימייל - Help Savta';
+      const htmlContent = `
+        <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">אימות כתובת אימייל</h2>
+          <p>לחץ על הקישור הבא לאימות כתובת האימייל שלך:</p>
+          <div style="text-align: center; margin: 20px 0;">
+            <a href="${verificationUrl}" style="background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+              אמת אימייל
+            </a>
+          </div>
+          <p>אם לא ביקשת אימות זה, אנא התעלם מאימייל זה.</p>
+          <p>בברכה,<br>צוות Help Savta</p>
+        </div>
+      `;
+
+      const textContent = `
+אימות כתובת אימייל - Help Savta
+
+לאימות כתובת האימייל שלך, עבור לקישור הבא:
+${verificationUrl}
+
+אם לא ביקשת אימות זה, אנא התעלם מאימייל זה.
+
+בברכה,
+צוות Help Savta
+      `;
+
+      const mailOptions = {
+        from: `"Help Savta" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject,
+        text: textContent,
+        html: htmlContent
+      };
+
+      await this.transporter.sendMail(mailOptions);
+      
+      await this.logNotification('email', email,
+        'Email verification sent (SMTP)', 'sent');
+      
+      console.log(`📧 SMTP: Email verification sent to ${email}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to send verification email via SMTP:', error);
+      
+      await this.logNotification('email', email,
+        `Failed to send email verification (SMTP): ${error.message}`, 'failed');
       
       return false;
     }

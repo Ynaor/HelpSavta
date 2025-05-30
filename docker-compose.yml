@@ -59,13 +59,19 @@ services:
       # Admin settings
       DEFAULT_ADMIN_USERNAME: admin
       DEFAULT_ADMIN_PASSWORD: admin123dev
-      # Email settings for development
+      # SendGrid Email Configuration (Primary)
+      # SENDGRID_API_KEY: SG.your-sendgrid-api-key-here
+      EMAIL_FROM: noreply@helpsavta-dev.com
+      EMAIL_FROM_NAME: Help Savta (Dev)
+      EMAIL_REPLY_TO: support@helpsavta-dev.com
+      SUPPORT_EMAIL: support@helpsavta-dev.com
+      SUPPORT_PHONE: 03-1234567
+      # SMTP Fallback for development
       EMAIL_HOST: smtp.ethereal.email
       EMAIL_PORT: 587
       EMAIL_SECURE: false
       EMAIL_USER: ethereal.user@ethereal.email
       EMAIL_PASS: ethereal.pass
-      EMAIL_FROM: noreply@helpsavta-dev.com
       # Logging and health check
       LOG_LEVEL: info
       HEALTH_CHECK_PATH: /health

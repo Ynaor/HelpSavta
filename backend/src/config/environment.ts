@@ -7,7 +7,7 @@ config();
 // Environment validation schema
 const envSchema = Joi.object({
   NODE_ENV: Joi.string()
-    .valid('development', 'staging', 'production')
+    .valid('development', 'staging', 'production', 'test')
     .default('development'),
   
   // Server Configuration
@@ -76,10 +76,11 @@ if (error) {
 // Environment configuration object
 export const environment = {
   // Environment
-  NODE_ENV: env.NODE_ENV as 'development' | 'staging' | 'production',
+  NODE_ENV: env.NODE_ENV as 'development' | 'staging' | 'production' | 'test',
   isDevelopment: env.NODE_ENV === 'development',
   isStaging: env.NODE_ENV === 'staging',
   isProduction: env.NODE_ENV === 'production',
+  isTest: env.NODE_ENV === 'test',
   
   // Server
   server: {
@@ -170,6 +171,7 @@ export const {
   isDevelopment,
   isStaging,
   isProduction,
+  isTest,
 } = environment;
 
 export default environment;
