@@ -233,27 +233,28 @@ EMAIL_PASS=your-app-password
 
 ## 🚀 CI/CD Pipeline / צינור אינטגרציה ופריסה רציפה
 
-HelpSavta includes a comprehensive GitHub Actions CI/CD pipeline that automates testing, building, and deployment processes.
+HelpSavta includes a comprehensive GitHub Actions CI/CD pipeline that automates testing, building, and deployment processes. **Latest Update: Pipeline completely redesigned based on debug analysis (2025-05-30).**
 
-### 📋 Pipeline Overview
+### 📋 Pipeline Overview - REDESIGNED
 
 #### 1. **Continuous Integration (CI)** - Pull Request Triggers
-The CI pipeline (`ci.yml`) runs automatically on pull requests to the main branch:
+The CI pipeline ([`ci.yml`](.github/workflows/ci.yml)) runs automatically on pull requests to the main branch:
 
-- ✅ **Comprehensive Test Suite** - Runs all backend and frontend tests
-- ✅ **Code Quality Checks** - Linting and TypeScript compilation
-- ✅ **Docker Build Tests** - Verifies container builds
-- ✅ **Security Scanning** - Vulnerability and dependency checks
-- ✅ **Smoke Tests** - End-to-end integration verification
+- ✅ **ALL Tests Execution** - Frontend (`npm run test:run`) and backend (`npm run test`) tests
+- ✅ **Code Quality Checks** - ESLint validation and TypeScript compilation
+- ✅ **Build Verification** - Both frontend and backend build processes
+- ✅ **Artifact Generation** - Saves build artifacts for deployment stage
+- ✅ **PR Approval Gate** - Tests MUST pass before PR can be approved
 
-#### 2. **Continuous Deployment (CD)** - Main Branch Deployment
-The CD pipeline (`deploy.yml`) triggers on successful merges to main:
+#### 2. **Production Deployment (CD)** - Main Branch Only
+The deployment pipeline ([`deploy.yml`](.github/workflows/deploy.yml)) triggers on successful merges to main:
 
-- 🔨 **Build & Push** - Docker images to Azure Container Registry
-- 🎯 **Staging Deployment** - Deploy to Azure App Service staging slot
-- ✅ **Post-Deployment Tests** - Verification and smoke tests
-- 🚀 **Production Promotion** - Swap to production slot after verification
-- 📧 **Notifications** - Deployment status and release notifications
+- ⏳ **CI Dependency** - Waits for CI completion before proceeding
+- 📦 **Artifact Reuse** - Downloads and uses pre-built artifacts from CI
+- 🔨 **Docker Build & Push** - Container images to Azure Container Registry
+- 🎯 **Production Deployment** - Direct deploy to Azure App Service production
+- 🔍 **Health Checks** - Comprehensive deployment verification
+- ✅ **Deployment Verification** - API endpoint testing and health validation
 
 #### 3. **Standalone Test Suite** - Manual & Reusable Testing
 The test suite (`test.yml`) provides comprehensive testing capabilities:
@@ -420,19 +421,23 @@ curl http://localhost:3001/health
 
 ## 📊 Current Status / סטטוס נוכחי
 
-**Production Ready: ✅ 95% Test Success Rate - CI/CD Pipeline Fixed and Ready**
+**Production Ready: ✅ CI/CD Pipeline Completely Redesigned and Fixed**
 
-The HelpSavta application is fully functional and ready for production deployment. **Recent Updates:**
-- ✅ **GitHub Workflow Issues Fixed** - Critical CI/CD pipeline syntax errors resolved (2025-05-30T17:40)
-  - Removed unnecessary security.yml workflow that was causing pipeline failures
-  - Fixed YAML syntax error in ci.yml (languages array formatting)
+The HelpSavta application is fully functional and ready for production deployment. **Latest Critical Updates:**
+- ✅ **CI/CD Pipeline Completely Redesigned** - Based on comprehensive debug analysis (2025-05-30T23:32)
+  - ALL tests now execute in CI (frontend + backend)
+  - Artifact-based deployment (no rebuilding in deploy stage)
+  - Mandatory test gates for PR approval
+  - Production-only deployment (staging environment removed)
+  - Comprehensive health checks and deployment verification
+- ✅ **Database Configuration Fixed** - Uses `DATABASE_URL_PRODUCTION` for proper environment separation
+- ✅ **Test Execution Enhanced** - Frontend: `npm run test:run`, Backend: `npm run test`
+- ✅ **Sequential Pipeline** - Deploy waits for CI completion before proceeding
 - ✅ **GitHub Secrets Configuration Complete** - All 7 required deployment secrets configured (2025-05-30T11:04:28Z)
-- ✅ **CI/CD Pipeline Operational** - GitHub Actions workflows verified and ready for automated deployments
 - ✅ **Email RTL Alignment Fixed** - Hebrew text now properly right-aligned in all email templates
 - ✅ **Azure KeyVault Integration Complete** - Secure production API key storage configured
-- ✅ **Production Environment Ready** - Automated scripts for SendGrid and KeyVault setup
 
-**🚀 Deployment Status**: All critical workflow issues resolved, secrets validated, CI/CD pipeline ready for deployment automation.
+**🚀 Deployment Status**: CI/CD pipeline completely redesigned based on debug findings, all critical issues resolved, ready for production deployment.
 
 All core features have been implemented and tested. For detailed project status, completion metrics, and technical achievements, see [`project_status.md`](project_status.md).
 
@@ -464,4 +469,4 @@ MIT License - see LICENSE file for details
 
 *הפרויקט מיועד לסייע לאוכלוסיית הגיל השלישי לקבל עזרה טכנית באמצעות מתנדבים מסורים*
 
-<!-- CI/CD Pipeline Test - 2025-05-30 18:23 -->
+<!-- CI/CD Pipeline Test - 2025-05-30 18:23 --># GitHub Secrets Configuration Fixed - Fri May 30 23:37:49 IDT 2025
