@@ -463,3 +463,5 @@ MIT License - see LICENSE file for details
 **Made with ❤️ for the volunteer community / נוצר באהבה עבור קהילת המתנדבים**
 
 *הפרויקט מיועד לסייע לאוכלוסיית הגיל השלישי לקבל עזרה טכנית באמצעות מתנדבים מסורים*
+
+<!-- CI/CD Pipeline Test - 2025-05-30 18:23 -->
