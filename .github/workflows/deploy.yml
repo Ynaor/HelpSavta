@@ -24,29 +24,39 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Get the CI run for this specific commit
-      - name: Get CI run for current commit
+      # Wait for CI to complete and get the run ID
+      - name: Wait for CI completion and get artifacts
         id: ci-run
         run: |
-          # Wait a moment for CI to complete if it's still running
-          sleep 10
+          echo "Waiting for CI to complete..."
+          max_attempts=20
+          attempt=1
           
-          # Get the CI run for the current commit SHA
-          CI_RUN_ID=$(gh run list --workflow=ci.yml --commit=${{ github.sha }} --json databaseId,status --jq '.[] | select(.status=="completed") | .databaseId' | head -1)
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt/$max_attempts: Looking for CI run..."
+            
+            # Get CI runs for current commit
+            CI_RUNS=$(gh run list --workflow=ci.yml --commit=${{ github.sha }} --json databaseId,status,conclusion 2>/dev/null || echo "[]")
+            echo "CI runs found: $CI_RUNS"
+            
+            # Check for completed successful run
+            CI_RUN_ID=$(echo "$CI_RUNS" | jq -r '.[] | select(.status=="completed" and .conclusion=="success") | .databaseId' | head -1)
+            
+            if [ "$CI_RUN_ID" != "null" ] && [ ! -z "$CI_RUN_ID" ]; then
+              echo "✅ Found completed CI run: $CI_RUN_ID"
+              echo "ci_run_id=$CI_RUN_ID" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            
+            echo "No completed CI run yet, waiting 15 seconds..."
+            sleep 15
+            attempt=$((attempt + 1))
+          done
           
-          if [ -z "$CI_RUN_ID" ]; then
-            echo "No completed CI run found for commit ${{ github.sha }}, waiting..."
-            sleep 30
-            CI_RUN_ID=$(gh run list --workflow=ci.yml --commit=${{ github.sha }} --json databaseId,status --jq '.[] | select(.status=="completed") | .databaseId' | head -1)
-          fi
-          
-          if [ -z "$CI_RUN_ID" ]; then
-            echo "Error: No CI run found for commit ${{ github.sha }}"
-            exit 1
-          fi
-          
-          echo "Found CI run ID for commit ${{ github.sha }}: $CI_RUN_ID"
-          echo "ci_run_id=$CI_RUN_ID" >> $GITHUB_OUTPUT
+          echo "❌ No completed CI run found after $max_attempts attempts"
+          echo "Available runs:"
+          gh run list --workflow=ci.yml --limit=5
+          exit 1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
