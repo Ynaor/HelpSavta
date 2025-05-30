@@ -113,12 +113,14 @@ router.get('/status', asyncHandler(async (req, res) => {
   
   res.json({
     success: true,
-    authenticated: isAuthenticated,
-    user: isAuthenticated ? {
-      id: req.session.userId,
-      username: req.session.username,
-      role: req.session.role
-    } : null
+    data: {
+      authenticated: isAuthenticated,
+      user: isAuthenticated ? {
+        id: req.session.userId,
+        username: req.session.username,
+        role: req.session.role
+      } : null
+    }
   });
 }));
 

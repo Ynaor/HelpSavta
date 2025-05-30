@@ -115,41 +115,102 @@ else
     echo -e "${GREEN}✓ Frontend dependencies are installed${NC}"
 fi
 
-echo -e "${BLUE}Checking database...${NC}"
+echo -e "${BLUE}Checking database setup...${NC}"
 
-# Check if database exists
-if [ ! -f "backend/dev.db" ]; then
-    echo -e "${YELLOW}⚠ Database not found${NC}"
-    echo -e "${BLUE}Setting up database...${NC}"
-    cd backend
-    npm run db:generate
-    npm run db:push
-    npm run db:seed
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✓ Database setup completed${NC}"
-    else
-        echo -e "${RED}✗ Failed to setup database${NC}"
-        exit 1
-    fi
-    cd ..
-else
-    echo -e "${GREEN}✓ Database exists${NC}"
+# Check backend .env file exists
+if [ ! -f "backend/.env" ]; then
+    echo -e "${YELLOW}⚠ Backend .env file not found${NC}"
+    echo -e "${BLUE}Creating .env file from .env.example...${NC}"
+    cp backend/.env.example backend/.env
+    echo -e "${GREEN}✓ Created backend/.env file${NC}"
+    echo -e "${YELLOW}⚠ Please review and update backend/.env with your settings${NC}"
 fi
+
+# Setup database for local development (SQLite by default)
+echo -e "${BLUE}Setting up SQLite database for local development...${NC}"
+cd backend
+
+# Ensure we're using SQLite configuration
+echo -e "${BLUE}Configuring for SQLite...${NC}"
+npm run db:use-sqlite
+if [ $? -ne 0 ]; then
+    echo -e "${RED}✗ Failed to configure SQLite${NC}"
+    exit 1
+fi
+
+# Setup database schema and seed data
+echo -e "${BLUE}Setting up database schema...${NC}"
+npm run db:push
+if [ $? -ne 0 ]; then
+    echo -e "${RED}✗ Failed to push database schema${NC}"
+    exit 1
+fi
+
+# Seed the database
+echo -e "${BLUE}Seeding database with initial data...${NC}"
+npm run db:seed
+if [ $? -ne 0 ]; then
+    echo -e "${YELLOW}⚠ Database seeding failed, but continuing...${NC}"
+    echo -e "${YELLOW}  You can run 'npm run db:seed' manually in the backend directory${NC}"
+else
+    echo -e "${GREEN}✓ Database seeded successfully${NC}"
+fi
+
+cd ..
+echo -e "${GREEN}✓ Database setup completed${NC}"
 
 echo -e "${BLUE}Starting development servers...${NC}"
 echo ""
-echo "Backend will be available at: http://localhost:3001"
-echo "Frontend will be available at: http://localhost:5173"
-echo "API Health Check: http://localhost:3001/health"
+echo "🌐 Backend will be available at: http://localhost:3001"
+echo "🖥️  Frontend will be available at: http://localhost:5173"
+echo "🔍 API Health Check: http://localhost:3001/health"
 echo ""
-echo "Admin Credentials:"
-echo "Username: admin"
-echo "Password: admin123"
+
+# Display admin credentials from .env file
+if [ -f "backend/.env" ]; then
+    ADMIN_USERNAME=$(grep "^DEFAULT_ADMIN_USERNAME=" backend/.env | cut -d'=' -f2)
+    ADMIN_PASSWORD=$(grep "^DEFAULT_ADMIN_PASSWORD=" backend/.env | cut -d'=' -f2)
+    echo "👤 Admin Credentials (for http://localhost:5173):"
+    echo "   Username: ${ADMIN_USERNAME:-admin}"
+    echo "   Password: ${ADMIN_PASSWORD:-admin123dev}"
+else
+    echo "👤 Admin Credentials:"
+    echo "   Username: admin"
+    echo "   Password: admin123dev"
+fi
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop both servers${NC}"
 echo ""
 
+# Final validation before starting servers
+echo -e "${BLUE}Performing final validation...${NC}"
+
+# Check if concurrently is installed
+if [ ! -f "node_modules/.bin/concurrently" ]; then
+    echo -e "${YELLOW}⚠ Installing root dependencies (including concurrently)...${NC}"
+    npm install
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}✗ Failed to install root dependencies${NC}"
+        exit 1
+    fi
+fi
+
+# Validate environment configuration
+echo -e "${BLUE}Validating environment configuration...${NC}"
+cd backend
+if ! node -e "require('./src/config/environment.ts')" 2>/dev/null; then
+    echo -e "${RED}✗ Environment configuration validation failed${NC}"
+    echo -e "${YELLOW}  Please check your backend/.env file for any missing or invalid values${NC}"
+    exit 1
+fi
+cd ..
+
+echo -e "${GREEN}✓ All validations passed${NC}"
+echo ""
+echo -e "${GREEN}🚀 Starting development servers...${NC}"
+
 # Start both servers using concurrently
 npm run dev
 
+echo ""
 echo -e "${BLUE}Development servers stopped${NC}"

@@ -1,2 +1,13 @@
 /node_modules
 .DS_Store
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+
+# Backend environment files
+backend/.env
+backend/.env.local
+backend/.env.production

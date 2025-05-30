@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environment": {
+      "value": "production"
+    },
+    "location": {
+      "value": "West Europe"
+    },
+    "appServicePlanSku": {
+      "value": "P1v3"
+    },
+    "postgresAdminUsername": {
+      "value": "helpsavta_admin"
+    },
+    "postgresAdminPassword": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/6720ecf6-4ad2-4909-b6b6-4696eb862b26/resourceGroups/helpsavta-prod-rg/providers/Microsoft.KeyVault/vaults/helpsavta-production-kv"
+        },
+        "secretName": "postgres-admin-password"
+      }
+    },
+    "redisCacheSku": {
+      "value": {
+        "name": "Standard",
+        "family": "C",
+        "capacity": 1
+      }
+    }
+  }
+}
