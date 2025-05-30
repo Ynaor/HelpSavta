@@ -24,33 +24,37 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Wait for CI to complete and download artifacts
-      - name: Wait for CI completion
-        if: github.event_name == 'push'
-        uses: fountainhead/action-wait-for-check@v1.2.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: "Build and Test"
-          ref: ${{ github.sha }}
-          timeoutSeconds: 600
+      # Get the latest successful CI run and download artifacts from it
+      - name: Get latest CI run ID
+        id: ci-run
+        run: |
+          # Get the most recent successful CI run
+          CI_RUN_ID=$(gh run list --workflow=ci.yml --status=success --limit=1 --json databaseId --jq '.[0].databaseId')
+          echo "Found CI run ID: $CI_RUN_ID"
+          echo "ci_run_id=$CI_RUN_ID" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download frontend build artifacts
         uses: actions/download-artifact@v4
         with:
           name: frontend-build
           path: frontend/dist/
+          run-id: ${{ steps.ci-run.outputs.ci_run_id }}
 
       - name: Download backend build artifacts
         uses: actions/download-artifact@v4
         with:
           name: backend-build
           path: backend/
+          run-id: ${{ steps.ci-run.outputs.ci_run_id }}
 
       - name: Download Docker context
         uses: actions/download-artifact@v4
         with:
           name: docker-context
           path: ./
+          run-id: ${{ steps.ci-run.outputs.ci_run_id }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
