@@ -229,152 +229,134 @@ EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your-app-password
 ```
 
-### Production Deployment
+## 🚀 Simplified CI/CD Pipeline / צינור אינטגרציה ופריסה מופשט
 
-## 🚀 CI/CD Pipeline / צינור אינטגרציה ופריסה רציפה
+HelpSavta has been redesigned with a **simplified CI/CD pipeline** using modern Azure serverless services for 90% cost reduction while maintaining all functionality.
 
-HelpSavta includes a comprehensive GitHub Actions CI/CD pipeline that automates testing, building, and deployment processes. **Latest Update: Pipeline completely redesigned based on debug analysis (2025-05-30).**
+### 🏗️ Simplified Architecture Overview
 
-### 📋 Pipeline Overview - REDESIGNED
+**New Architecture: Azure Static Web Apps + Azure Container Apps**
 
-#### 1. **Continuous Integration (CI)** - Pull Request Triggers
-The CI pipeline ([`ci.yml`](.github/workflows/ci.yml)) runs automatically on pull requests to the main branch:
+```mermaid
+graph TB
+    subgraph "GitHub"
+        A[Source Code] --> B[GitHub Actions CI/CD]
+        B --> C[GitHub Releases/Artifacts]
+    end
+    
+    subgraph "Azure - Minimal Resources"
+        D[Azure Static Web Apps] --> E[Frontend Hosting]
+        F[Azure Container Apps] --> G[Backend API]
+        H[Azure Database for PostgreSQL] --> G
+        I[Azure Key Vault] --> G
+    end
+    
+    C --> D
+    C --> F
+```
 
-- ✅ **ALL Tests Execution** - Frontend (`npm run test:run`) and backend (`npm run test`) tests
-- ✅ **Code Quality Checks** - ESLint validation and TypeScript compilation
-- ✅ **Build Verification** - Both frontend and backend build processes
-- ✅ **Artifact Generation** - Saves build artifacts for deployment stage
-- ✅ **PR Approval Gate** - Tests MUST pass before PR can be approved
+### 📋 Simplified Pipeline Overview
 
-#### 2. **Production Deployment (CD)** - Main Branch Only
-The deployment pipeline ([`deploy.yml`](.github/workflows/deploy.yml)) triggers on successful merges to main:
+#### 1. **PR Validation** - Pull Request Triggers
+The PR validation pipeline ([`pr-validation.yml`](.github/workflows/pr-validation.yml)) runs on pull requests:
 
-- ⏳ **CI Dependency** - Waits for CI completion before proceeding
-- 📦 **Artifact Reuse** - Downloads and uses pre-built artifacts from CI
-- 🔨 **Docker Build & Push** - Container images to Azure Container Registry
-- 🎯 **Production Deployment** - Direct deploy to Azure App Service production
+- ✅ **Build and Test Only** - No deployment on PRs
+- ✅ **Frontend Tests** - Lint, test, and build verification
+- ✅ **Backend Tests** - Unit tests and build verification
+- ✅ **Validation Gate** - Tests MUST pass before PR can be merged
+
+#### 2. **Production Deployment** - Main Branch Only
+The deployment pipeline ([`deploy-simplified.yml`](.github/workflows/deploy-simplified.yml)) triggers on main branch merges:
+
+- 🔨 **Build and Test** - Full validation before deployment
+- 📦 **Create Artifacts** - Store build artifacts in GitHub
+- 🌐 **Deploy Frontend** - Direct deployment to Azure Static Web Apps
+- 🐳 **Deploy Backend** - Container deployment to Azure Container Apps
+- 🗄️ **Database Migrations** - Automatic Prisma migrations
 - 🔍 **Health Checks** - Comprehensive deployment verification
-- ✅ **Deployment Verification** - API endpoint testing and health validation
 
-#### 3. **Standalone Test Suite** - Manual & Reusable Testing
-The test suite (`test.yml`) provides comprehensive testing capabilities:
+### 🎯 Simplified Azure Infrastructure
 
-- 🧪 **Backend Unit Tests** - Jest with PostgreSQL integration
-- 🎨 **Frontend Component Tests** - Vitest with coverage reporting
-- 🔗 **Integration Tests** - Full application testing
-- 📊 **Performance Tests** - Lighthouse audits and load testing
+**Cost Comparison:**
+- **Before**: ~$242/month (App Service Plan P1v3, Redis, Container Registry, etc.)
+- **After**: ~$26/month (Static Web Apps Free + Container Apps + PostgreSQL Burstable)
+- **Savings**: 90% cost reduction (~$216/month)
 
-### ✅ GitHub Secrets Configuration - COMPLETED
+**New Infrastructure (Bicep template: [`azure/simplified-main.bicep`](azure/simplified-main.bicep)):**
+- ✅ **Azure Static Web Apps** - Frontend hosting (Free tier)
+- ✅ **Azure Container Apps** - Backend API (serverless, scale-to-zero)
+- ✅ **PostgreSQL Flexible Server** - Database (Burstable tier)
+- ✅ **Azure Key Vault** - Secrets management (kept from old setup)
+- ❌ **Removed**: App Service, Container Registry, Redis, Application Insights, CDN, Storage Account
 
-**All required GitHub secrets have been successfully configured (2025-05-30T11:04:28Z):**
+### 🧹 Migration and Cleanup
+
+**Azure Resource Cleanup:**
+```bash
+# Clean up old expensive Azure resources
+./scripts/cleanup-azure-resources.sh
+
+# Deploy new simplified infrastructure
+az deployment group create \
+  --resource-group helpsavta-prod-rg \
+  --template-file azure/simplified-main.bicep \
+  --parameters @azure/simplified-parameters.json
+```
+
+**Files Removed:**
+- Old CI/CD workflows (`ci.yml`, `deploy.yml`)
+- Complex Azure infrastructure (`main.bicep`, multiple parameter files)
+- Docker compose files (no longer needed)
+- Complex deployment scripts
+- Frontend Docker files (Static Web Apps handles this)
+
+### 🔐 Required GitHub Secrets (Updated)
 
 ```bash
-# Azure Configuration ✅ CONFIGURED
-AZURE_CREDENTIALS - Service principal authentication (JSON format)
+# Azure Configuration
+AZURE_CREDENTIALS - Service principal authentication
 AZURE_SUBSCRIPTION_ID - Azure subscription identifier
-AZURE_CONTAINER_REGISTRY - Container registry URL
-AZURE_CONTAINER_REGISTRY_USERNAME - Registry authentication username
-AZURE_CONTAINER_REGISTRY_PASSWORD - Registry authentication password
+AZURE_RESOURCE_GROUP - Resource group name
+AZURE_STATIC_WEB_APPS_API_TOKEN - Static Web Apps deployment token
 
-# Database URLs ✅ CONFIGURED
-STAGING_DATABASE_URL - PostgreSQL staging database connection
-PRODUCTION_DATABASE_URL - PostgreSQL production database connection
+# Database and Application
+DATABASE_URL_PRODUCTION - PostgreSQL connection string
+SENDGRID_API_KEY - Email service API key
+SESSION_SECRET - Application session secret
+ADMIN_USERNAME - Default admin username
+ADMIN_PASSWORD - Default admin password
+AZURE_APP_URL_PRODUCTION - Application URL for health checks
 ```
 
-### 🎯 Deployment Pipeline Status
+### 📊 Simple Analytics
 
-✅ **Ready for Deployment**: All secrets validated and CI/CD pipeline operational
-- Secrets configured and verified via GitHub CLI
-- Workflows tested and ready for automated deployments
-- Azure infrastructure automation prepared
+**Built-in User Metrics Collection:**
+- IP address and location tracking
+- User agent and device information
+- Endpoint usage analytics
+- Timestamp and session tracking
 
-### 🏗️ Workflow Details
+Implementation: [`backend/src/middleware/analytics.ts`](backend/src/middleware/analytics.ts)
 
-#### CI Workflow Features:
-- **Matrix Strategy** - Tests across multiple Node.js versions
-- **Parallel Execution** - Backend and frontend tests run simultaneously
-- **Dependency Caching** - Faster builds with npm cache
-- **Coverage Reports** - Codecov integration for test coverage
-- **Security Scanning** - Trivy and CodeQL for vulnerability detection
+### 🚀 Deployment Process
 
-#### CD Workflow Features:
-- **Blue-Green Deployment** - Zero-downtime deployments via slot swapping
-- **Database Migrations** - Automatic Prisma migrations
-- **Rollback Mechanism** - Automatic rollback on deployment failure
-- **Environment Promotion** - Staging → Production workflow
-- **Release Management** - Automatic GitHub releases for production deployments
+1. **Create PR** → Triggers validation (build + test only)
+2. **Merge to Main** → Triggers full deployment:
+   - Build and test both frontend and backend
+   - Create deployment artifacts
+   - Deploy frontend to Static Web Apps
+   - Deploy backend to Container Apps
+   - Run database migrations
+   - Verify deployment health
 
-### 🚦 Manual Deployment Triggers
+### 🎯 Benefits of Simplified Architecture
 
-You can trigger deployments manually using workflow dispatch:
-
-```bash
-# Trigger staging deployment
-gh workflow run deploy.yml -f environment=staging
-
-# Trigger production deployment
-gh workflow run deploy.yml -f environment=production -f force_deploy=true
-
-# Run comprehensive test suite
-gh workflow run test.yml -f test-type=all
-```
-
-### 📊 Monitoring & Notifications
-
-The pipeline includes comprehensive monitoring:
-
-- **GitHub Actions Summary** - Detailed test results and metrics
-- **Deployment Comments** - Automatic commit comments with deployment status
-- **GitHub Releases** - Automatic releases for successful production deployments
-- **Slack/Teams Integration** - (Configure webhook URLs for team notifications)
-
-#### Database Migration (SQLite to PostgreSQL)
-For production deployment, migrate from SQLite to PostgreSQL:
-
-```bash
-# Production database setup
-cd backend
-npm run db:migrate:postgresql
-
-# Update environment variables for PostgreSQL
-DATABASE_URL="postgresql://username:password@host:5432/database"
-```
-
-#### Docker Production Deployment
-```bash
-# Build production images
-docker-compose -f docker-compose.production.yml build
-
-# Deploy with production configuration
-docker-compose -f docker-compose.production.yml up -d
-```
-
-#### Azure Deployment
-Azure infrastructure setup includes:
-- **Azure App Service** - Backend API hosting with KeyVault integration
-- **Azure PostgreSQL** - Production database
-- **Azure Key Vault** - Secure secrets management for SendGrid API keys
-- **Application Insights** - Monitoring
-
-**✅ KeyVault Integration Complete:**
-```bash
-# Setup SendGrid API key and production secrets in Azure KeyVault
-cd scripts
-./update-sendgrid-keyvault.sh
-
-# This script will:
-# - Store SendGrid API key securely in KeyVault
-# - Configure email settings (host, port, user)
-# - Generate secure session secrets and admin credentials
-# - Update App Service to use KeyVault references
-```
-
-Production environment variables use KeyVault references:
-```env
-SENDGRID_API_KEY="@Microsoft.KeyVault(SecretUri=https://helpsavta-production-kv.vault.azure.net/secrets/sendgrid-api-key/)"
-EMAIL_FROM="@Microsoft.KeyVault(SecretUri=https://helpsavta-production-kv.vault.azure.net/secrets/email-from/)"
-SESSION_SECRET="@Microsoft.KeyVault(SecretUri=https://helpsavta-production-kv.vault.azure.net/secrets/session-secret/)"
-```
+- ✅ **90% Cost Reduction** - From ~$242 to ~$26/month
+- ✅ **Zero Server Management** - Fully serverless architecture
+- ✅ **Auto-scaling** - Scale to zero when not in use
+- ✅ **Global CDN** - Built into Static Web Apps
+- ✅ **Automatic HTTPS** - SSL certificates handled automatically
+- ✅ **Simplified Operations** - Minimal maintenance required
 
 ## 🧪 Testing / בדיקות
 
