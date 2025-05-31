@@ -24,81 +24,47 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Wait for CI to complete and get the run ID
-      - name: Wait for CI completion and get artifacts
-        id: ci-run
-        run: |
-          echo "Waiting for CI to complete..."
-          max_attempts=20
-          attempt=1
-          
-          while [ $attempt -le $max_attempts ]; do
-            echo "Attempt $attempt/$max_attempts: Looking for CI run..."
-            
-            # Get CI runs for current commit
-            CI_RUNS=$(gh run list --workflow=ci.yml --commit=${{ github.sha }} --json databaseId,status,conclusion 2>/dev/null || echo "[]")
-            echo "CI runs found: $CI_RUNS"
-            
-            # Check for completed successful run
-            CI_RUN_ID=$(echo "$CI_RUNS" | jq -r '.[] | select(.status=="completed" and .conclusion=="success") | .databaseId' | head -1)
-            
-            if [ "$CI_RUN_ID" != "null" ] && [ ! -z "$CI_RUN_ID" ]; then
-              echo "✅ Found completed CI run: $CI_RUN_ID"
-              echo "ci_run_id=$CI_RUN_ID" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-            
-            echo "No completed CI run yet, waiting 15 seconds..."
-            sleep 15
-            attempt=$((attempt + 1))
-          done
-          
-          echo "❌ No completed CI run found after $max_attempts attempts"
-          echo "Available runs:"
-          gh run list --workflow=ci.yml --limit=5
-          exit 1
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Download frontend build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend/dist/
-          run-id: ${{ steps.ci-run.outputs.ci_run_id }}
-
-      - name: Download backend build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-build
-          path: backend/
-          run-id: ${{ steps.ci-run.outputs.ci_run_id }}
-
-      - name: Download Docker context
-        uses: actions/download-artifact@v4
-        with:
-          name: docker-context
-          path: ./
-          run-id: ${{ steps.ci-run.outputs.ci_run_id }}
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
 
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Verify artifacts exist
+      # Build frontend (rebuild instead of using CI artifacts)
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      # Build backend (rebuild instead of using CI artifacts)
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: backend
+        run: npx prisma generate
+
+      - name: Build backend
+        working-directory: backend
+        run: npm run build
+
+      # Verify builds completed successfully
       - name: Verify build artifacts
         run: |
           echo "Checking frontend build artifacts..."
           ls -la frontend/dist/
           echo "Checking backend build artifacts..."
           ls -la backend/dist/
-          echo "Checking Docker context..."
+          echo "Checking root files..."
           ls -la ./
 
       - name: Set up Docker Buildx
@@ -125,7 +91,6 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: helpsavta-production-backend
-          slot-name: production
           images: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/helpsavta-backend:${{ github.sha }}
 
       - name: Run database migrations
