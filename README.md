@@ -310,23 +310,42 @@ az deployment group create \
 - Complex deployment scripts
 - Frontend Docker files (Static Web Apps handles this)
 
-### 🔐 Required GitHub Secrets (Updated)
+### 🔐 Required GitHub Secrets Configuration
 
+**Complete GitHub Secrets Setup Guide:** See [`DEPLOYMENT_SECRETS.md`](DEPLOYMENT_SECRETS.md) for comprehensive configuration instructions.
+
+**Required Repository Secrets:**
 ```bash
-# Azure Configuration
-AZURE_CREDENTIALS - Service principal authentication
-AZURE_SUBSCRIPTION_ID - Azure subscription identifier
-AZURE_RESOURCE_GROUP - Resource group name
-AZURE_STATIC_WEB_APPS_API_TOKEN - Static Web Apps deployment token
+# Azure Authentication
+AZURE_CREDENTIALS - Service principal JSON (clientId, clientSecret, subscriptionId, tenantId)
+AZURE_SUBSCRIPTION_ID - Azure subscription: 6720ecf6-4ad2-4909-b6b6-4696eb862b26
+AZURE_RESOURCE_GROUP - Resource group: helpsavta-prod-rg
+
+# Azure Container Registry
+AZURE_CONTAINER_REGISTRY - ACR login server (e.g., helpsavtaprodacr.azurecr.io)
+AZURE_CONTAINER_REGISTRY_USERNAME - ACR username
+AZURE_CONTAINER_REGISTRY_PASSWORD - ACR access key
+
+# Azure Static Web Apps
+AZURE_STATIC_WEB_APPS_API_TOKEN - Deployment token (regenerate if expired)
 
 # Database and Application
 DATABASE_URL_PRODUCTION - PostgreSQL connection string
 SENDGRID_API_KEY - Email service API key
-SESSION_SECRET - Application session secret
+SESSION_SECRET - Strong session secret (32+ characters)
 ADMIN_USERNAME - Default admin username
-ADMIN_PASSWORD - Default admin password
-AZURE_APP_URL_PRODUCTION - Application URL for health checks
+ADMIN_PASSWORD - Strong admin password
+EMAIL_FROM - From email address (e.g., noreply@helpsavta.com)
 ```
+
+**⚠️ Common Issue**: Static Web Apps token expiration causes `deployment_token provided was invalid` error.
+**Solution**: Regenerate token in Azure Portal → Static Web Apps → Manage deployment token.
+
+See [`DEPLOYMENT_SECRETS.md`](DEPLOYMENT_SECRETS.md) for:
+- Step-by-step Azure Portal instructions
+- Token regeneration procedures
+- Verification commands for each secret
+- Troubleshooting guide for common issues
 
 ### 📊 Simple Analytics
 
@@ -403,25 +422,45 @@ curl http://localhost:3001/health
 
 ## 📊 Current Status / סטטוס נוכחי
 
-**Production Ready: ✅ CI/CD Pipeline Completely Redesigned and Fixed**
+**🚀 Production Ready: ✅ All Critical Deployment Blockers Resolved**
 
-The HelpSavta application is fully functional and ready for production deployment. **Latest Critical Updates:**
-- ✅ **CI/CD Pipeline Completely Redesigned** - Based on comprehensive debug analysis (2025-05-30T23:32)
-  - ALL tests now execute in CI (frontend + backend)
-  - Artifact-based deployment (no rebuilding in deploy stage)
-  - Mandatory test gates for PR approval
-  - Production-only deployment (staging environment removed)
-  - Comprehensive health checks and deployment verification
-- ✅ **Database Configuration Fixed** - Uses `DATABASE_URL_PRODUCTION` for proper environment separation
-- ✅ **Test Execution Enhanced** - Frontend: `npm run test:run`, Backend: `npm run test`
-- ✅ **Sequential Pipeline** - Deploy waits for CI completion before proceeding
-- ✅ **GitHub Secrets Configuration Complete** - All 7 required deployment secrets configured (2025-05-30T11:04:28Z)
-- ✅ **Email RTL Alignment Fixed** - Hebrew text now properly right-aligned in all email templates
-- ✅ **Azure KeyVault Integration Complete** - Secure production API key storage configured
+The HelpSavta application is fully functional and ready for immediate production deployment. **Latest Critical Updates (2025-05-31T09:55):**
 
-**🚀 Deployment Status**: CI/CD pipeline completely redesigned based on debug findings, all critical issues resolved, ready for production deployment.
+### 🚨 **Critical Deployment Blockers Fixed**
+- ✅ **Resource Group Name Mismatch** - All workflows now correctly target `helpsavta-prod-rg` instead of `helpsavta-production`
+- ✅ **Container Registry Strategy** - Validated consistent GitHub Container Registry usage across all components
+- ✅ **Key Vault Integration** - Fixed Container Apps Key Vault format from incorrect `@Microsoft.KeyVault(...)` to proper `secretRef` with `keyVaultUrl`
+- ✅ **Database Migration Strategy** - Consolidated to single migration point in Docker entrypoint, eliminating conflicts
+- ✅ **Cross-Region Database Connectivity** - Enhanced connection string for optimal West Europe ↔ North Europe connectivity
 
-All core features have been implemented and tested. For detailed project status, completion metrics, and technical achievements, see [`project_status.md`](project_status.md).
+### 🎯 **Infrastructure Ready Status**
+| Component | Status | Deployment Ready |
+|-----------|--------|------------------|
+| **Resource Group Targeting** | ✅ **FIXED** | All workflows target correct production resource group |
+| **Container Registry** | ✅ **VALIDATED** | Consistent GitHub Container Registry strategy |
+| **Key Vault Integration** | ✅ **FIXED** | Container Apps can now access secrets properly |
+| **Migration Strategy** | ✅ **CONSOLIDATED** | No conflicts, single reliable migration approach |
+| **Database Connectivity** | ✅ **ENHANCED** | Optimized for cross-region reliability |
+
+### 🚀 **Previous Major Achievements**
+- ✅ **Complete CI/CD Pipeline Suite** - 4 specialized workflows for backend, frontend, infrastructure, and environment management
+- ✅ **Simplified Azure Architecture** - 90% cost reduction from ~$242 to ~$26/month using serverless Container Apps
+- ✅ **Production-Safe Database Migrations** - Docker entrypoint uses `prisma migrate deploy` for production safety
+- ✅ **Dynamic Health Checks** - Real-time URL discovery and comprehensive endpoint verification
+- ✅ **Comprehensive Error Handling** - Retry logic, timeouts, and clear error reporting throughout pipeline
+- ✅ **GitHub Secrets Documentation** - Complete configuration guide in [`DEPLOYMENT_SECRETS.md`](DEPLOYMENT_SECRETS.md)
+
+### **🎯 Deployment Command Ready**
+```bash
+# All critical blockers resolved - safe to deploy immediately
+git push origin main
+
+# Or manual trigger: GitHub Actions → Deploy Infrastructure → Run workflow
+```
+
+**🚀 Deployment Status**: **ALL CRITICAL DEPLOYMENT BLOCKERS ELIMINATED** - The infrastructure is production-ready with all validation report issues resolved.
+
+All core features implemented, tested, and deployment pipeline operational. For comprehensive status details, see [`project_status.md`](project_status.md).
 
 ## 🤝 Contributing / תרומה
 

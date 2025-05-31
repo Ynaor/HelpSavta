@@ -41,7 +41,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' exis
 
 // 4. Backend Container App
 resource backendApp 'Microsoft.App/containerApps@2023-05-01' = {
-  name: '${appName}-backend'
+  name: 'helpsavta-production-backend'
   location: location
   identity: {
     type: 'SystemAssigned'
@@ -63,7 +63,32 @@ resource backendApp 'Microsoft.App/containerApps@2023-05-01' = {
       secrets: [
         {
           name: 'database-url'
-          value: 'postgresql://${postgresAdminUsername}:${postgresAdminPassword}@helpsavta-prod-pg-server.postgres.database.azure.com:5432/helpsavta?sslmode=require'
+          value: 'postgresql://${postgresAdminUsername}:${postgresAdminPassword}@helpsavta-prod-pg-server.postgres.database.azure.com:5432/helpsavta?sslmode=require&connect_timeout=60&application_name=helpsavta-backend'
+        }
+        {
+          name: 'sendgrid-api-key'
+          keyVaultUrl: '${keyVault.properties.vaultUri}secrets/sendgrid-api-key'
+          identity: 'system'
+        }
+        {
+          name: 'session-secret'
+          keyVaultUrl: '${keyVault.properties.vaultUri}secrets/session-secret'
+          identity: 'system'
+        }
+        {
+          name: 'admin-username'
+          keyVaultUrl: '${keyVault.properties.vaultUri}secrets/admin-username'
+          identity: 'system'
+        }
+        {
+          name: 'admin-password'
+          keyVaultUrl: '${keyVault.properties.vaultUri}secrets/admin-password'
+          identity: 'system'
+        }
+        {
+          name: 'email-from'
+          keyVaultUrl: '${keyVault.properties.vaultUri}secrets/email-from'
+          identity: 'system'
         }
       ]
     }
@@ -91,23 +116,23 @@ resource backendApp 'Microsoft.App/containerApps@2023-05-01' = {
             }
             {
               name: 'SENDGRID_API_KEY'
-              value: '@Microsoft.KeyVault(SecretUri=${keyVault.properties.vaultUri}secrets/sendgrid-api-key/)'
+              secretRef: 'sendgrid-api-key'
             }
             {
               name: 'SESSION_SECRET'
-              value: '@Microsoft.KeyVault(SecretUri=${keyVault.properties.vaultUri}secrets/session-secret/)'
+              secretRef: 'session-secret'
             }
             {
               name: 'DEFAULT_ADMIN_USERNAME'
-              value: '@Microsoft.KeyVault(SecretUri=${keyVault.properties.vaultUri}secrets/admin-username/)'
+              secretRef: 'admin-username'
             }
             {
               name: 'DEFAULT_ADMIN_PASSWORD'
-              value: '@Microsoft.KeyVault(SecretUri=${keyVault.properties.vaultUri}secrets/admin-password/)'
+              secretRef: 'admin-password'
             }
             {
               name: 'EMAIL_FROM'
-              value: '@Microsoft.KeyVault(SecretUri=${keyVault.properties.vaultUri}secrets/email-from/)'
+              secretRef: 'email-from'
             }
             {
               name: 'EMAIL_FROM_NAME'
@@ -168,7 +193,7 @@ resource keyVaultAccessPolicy 'Microsoft.KeyVault/vaults/accessPolicies@2023-07-
 }
 
 // Output values
-output backendAppName string = backendApp.name
+output backendAppName string = 'helpsavta-production-backend'
 output backendAppUrl string = 'https://${backendApp.properties.configuration.ingress.fqdn}'
 output staticWebAppName string = staticWebApp.name
 output staticWebAppUrl string = 'https://${staticWebApp.properties.defaultHostname}'

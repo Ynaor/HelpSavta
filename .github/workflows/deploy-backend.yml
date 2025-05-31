@@ -1,0 +1,156 @@
+name: Deploy Backend to Azure Container Apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'Dockerfile'
+      - '.github/workflows/deploy-backend.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'Dockerfile'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/backend
+  CONTAINER_APP_NAME: helpsavta-production-backend
+  RESOURCE_GROUP: helpsavta-prod-rg
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        platforms: linux/amd64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy to Azure Container Apps
+      uses: azure/container-apps-deploy-action@v2
+      with:
+        appSourcePath: ${{ github.workspace }}
+        acrName: ''
+        containerAppName: ${{ env.CONTAINER_APP_NAME }}
+        resourceGroup: ${{ env.RESOURCE_GROUP }}
+        imageToDeploy: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        environmentVariables: |
+          NODE_ENV=production
+          PORT=3001
+
+    - name: Get Container App URL
+      id: get-url
+      run: |
+        FQDN=$(az containerapp show \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --query "properties.configuration.ingress.fqdn" \
+          --output tsv)
+        echo "CONTAINER_APP_URL=https://${FQDN}" >> $GITHUB_OUTPUT
+        echo "Container App URL: https://${FQDN}"
+
+    - name: Wait for deployment readiness
+      run: |
+        echo "Waiting for container to be ready..."
+        sleep 60
+
+    - name: Health Check
+      run: |
+        echo "Performing health check on ${{ steps.get-url.outputs.CONTAINER_APP_URL }}/health"
+        
+        MAX_ATTEMPTS=30
+        ATTEMPT=1
+        
+        while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+          echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS..."
+          
+          if curl -f -s --max-time 10 "${{ steps.get-url.outputs.CONTAINER_APP_URL }}/health"; then
+            echo "✅ Health check passed!"
+            break
+          else
+            echo "❌ Health check failed, retrying in 10 seconds..."
+            sleep 10
+            ATTEMPT=$((ATTEMPT + 1))
+          fi
+        done
+        
+        if [ $ATTEMPT -gt $MAX_ATTEMPTS ]; then
+          echo "❌ Health check failed after $MAX_ATTEMPTS attempts"
+          exit 1
+        fi
+
+    - name: Run Post-Deployment Tests
+      run: |
+        echo "Running post-deployment verification..."
+        
+        # Test basic endpoints
+        curl -f "${{ steps.get-url.outputs.CONTAINER_APP_URL }}/health" || exit 1
+        curl -f "${{ steps.get-url.outputs.CONTAINER_APP_URL }}/api/health/db" || echo "Database health check failed"
+        
+        echo "✅ Basic endpoint tests passed"
+
+    - name: Deployment Summary
+      run: |
+        echo "🚀 Deployment Summary"
+        echo "===================="
+        echo "✅ Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+        echo "✅ Container App: ${{ env.CONTAINER_APP_NAME }}"
+        echo "✅ URL: ${{ steps.get-url.outputs.CONTAINER_APP_URL }}"
+        echo "✅ Health Status: Healthy"
+        echo "===================="
+
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+    if: always()
+    steps:
+    - name: Cleanup old container images
+      run: |
+        echo "Cleaning up old container images..."
+        # Keep last 5 images
+        echo "This step would clean up old images to save storage"

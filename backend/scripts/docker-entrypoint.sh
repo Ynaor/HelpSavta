@@ -39,7 +39,11 @@ wait_for_db() {
             fi
         else
             # For SQLite or other databases, just check if we can connect
-            if npx prisma db push --accept-data-loss > /dev/null 2>&1; then
+            # Use a simple connection test instead of schema changes
+            if npx prisma db execute --stdin <<< "SELECT 1;" > /dev/null 2>&1; then
+                log "${GREEN}✓ Database connection established${NC}"
+                return 0
+            elif npx prisma db push --accept-data-loss > /dev/null 2>&1; then
                 log "${GREEN}✓ Database connection established${NC}"
                 return 0
             fi
@@ -100,10 +104,21 @@ wait_for_redis
 
 # Setup database schema if needed
 log "${BLUE}Setting up database schema...${NC}"
-if npx prisma db push --accept-data-loss; then
-    log "${GREEN}✓ Database schema synchronized${NC}"
+if [ "$NODE_ENV" = "production" ]; then
+    # Production: Use migrations for safety
+    if npx prisma migrate deploy; then
+        log "${GREEN}✓ Database migrations deployed successfully${NC}"
+    else
+        log "${RED}✗ Database migration deployment failed${NC}"
+        exit 1
+    fi
 else
-    log "${YELLOW}⚠ Database schema setup failed, continuing anyway${NC}"
+    # Development: Use db push for flexibility
+    if npx prisma db push --accept-data-loss; then
+        log "${GREEN}✓ Database schema synchronized${NC}"
+    else
+        log "${YELLOW}⚠ Database schema setup failed, continuing anyway${NC}"
+    fi
 fi
 
 # Run database seeding if needed

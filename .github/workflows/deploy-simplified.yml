@@ -94,15 +94,21 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "/frontend"
+          app_location: "frontend"
           output_location: "dist"
-          skip_deploy_on_missing_secrets: true
 
       # Build and Deploy Backend to Container Apps
-      - name: Build backend container
+      - name: Login to Azure Container Registry
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
+          username: ${{ secrets.AZURE_CONTAINER_REGISTRY_USERNAME }}
+          password: ${{ secrets.AZURE_CONTAINER_REGISTRY_PASSWORD }}
+
+      - name: Build and push Docker image
         run: |
-          docker build -t helpsavta-backend:${{ github.sha }} .
-          docker tag helpsavta-backend:${{ github.sha }} helpsavta-backend:latest
+          docker build -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}/helpsavta-backend:${{ github.sha }} .
+          docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}/helpsavta-backend:${{ github.sha }}
 
       - name: Deploy to Azure Container Apps
         run: |
@@ -110,7 +116,7 @@ jobs:
           az containerapp update \
             --name helpsavta-production-backend \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --image helpsavta-backend:${{ github.sha }} \
+            --image ${{ secrets.AZURE_CONTAINER_REGISTRY }}/helpsavta-backend:${{ github.sha }} \
             --set-env-vars \
               NODE_ENV=production \
               PORT=3001 \
