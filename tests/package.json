@@ -17,13 +17,8 @@
   "dependencies": {
     "@playwright/test": "^1.40.0",
     "@types/express": "^5.0.2",
-    "concurrently": "^8.2.2",
-    "dotenv": "^16.3.1",
     "express": "^5.1.0",
     "supertest": "^7.1.1"
-  },
-  "devDependencies": {
-    "@types/node": "^20.10.5"
   },
   "keywords": [
     "tests",

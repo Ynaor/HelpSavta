@@ -5,36 +5,23 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "npm run dev --workspace=backend",
-    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
     "build": "npm run build --workspaces",
-    "build:backend": "npm run build --workspace=backend",
-    "build:frontend": "npm run build --workspace=frontend",
     "start": "npm run start --workspace=backend",
-    "install:all": "npm install",
-    "db:setup": "npm run db:generate --workspace=backend && npm run db:push --workspace=backend && npm run db:seed --workspace=backend",
-    "db:reset": "npm run db:reset --workspace=backend",
-    "db:seed": "npm run db:seed --workspace=backend",
     "test": "npm run test --workspaces",
-    "test:backend": "npm run test --workspace=backend",
-    "test:frontend": "npm run test --workspace=frontend",
     "test:e2e": "npm run test:e2e --workspace=tests",
     "lint": "npm run lint --workspaces",
-    "lint:backend": "npm run lint --workspace=backend",
-    "lint:frontend": "npm run lint --workspace=frontend",
     "lint:fix": "npm run lint:fix --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
     "clean": "npm run clean --workspaces && rm -rf node_modules",
     "clean:deep": "npm run clean && rm -rf **/node_modules **/.next **/dist **/build",
-    "typecheck": "npm run typecheck --workspaces",
+    "db:setup": "npm run db:setup --workspace=backend",
+    "db:reset": "npm run db:reset --workspace=backend",
+    "db:seed": "npm run db:seed --workspace=backend",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f",
-    "backup:db": "npm run backup --workspace=tools",
-    "health": "curl http://localhost:3001/health",
-    "tools:email-test": "npm run email:test --workspace=tools",
-    "tools:db-monitor": "npm run db:monitor --workspace=tools"
+    "health": "curl http://localhost:3001/health"
   },
   "keywords": [
     "volunteer",
@@ -46,12 +33,16 @@
     "nodejs",
     "express",
     "prisma",
-    "sqlite"
+    "postgresql"
   ],
   "author": "Tech Help Volunteers",
   "license": "MIT",
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@types/node": "^20.10.5",
+    "concurrently": "^8.2.2",
+    "dotenv": "^16.3.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
   },
   "engines": {
     "node": ">=18.0.0",
@@ -68,7 +59,6 @@
   "workspaces": [
     "backend",
     "frontend",
-    "tools",
     "tests"
   ]
 }

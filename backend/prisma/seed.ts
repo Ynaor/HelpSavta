@@ -19,8 +19,12 @@ async function main() {
   console.log('🌱 Starting database seeding...');
 
   // Create default admin user
-  const defaultAdminUsername = process.env.DEFAULT_ADMIN_USERNAME;
-  const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD;
+  const defaultAdminUsername = process.env.DEFAULT_ADMIN_USERNAME || 'admin';
+  const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'development123';
+
+  if (!process.env.DEFAULT_ADMIN_USERNAME || !process.env.DEFAULT_ADMIN_PASSWORD) {
+    console.log('⚠️  Using default admin credentials. Please set DEFAULT_ADMIN_USERNAME and DEFAULT_ADMIN_PASSWORD in .env');
+  }
 
   // Check if admin already exists
   const existingAdmin = await prisma.adminUser.findUnique({

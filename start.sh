@@ -126,34 +126,29 @@ if [ ! -f "backend/.env" ]; then
     echo -e "${YELLOW}⚠ Please review and update backend/.env with your settings${NC}"
 fi
 
-# Setup database for local development (SQLite by default)
-echo -e "${BLUE}Setting up SQLite database for local development...${NC}"
+# Setup database for local development (PostgreSQL)
+echo -e "${BLUE}Setting up PostgreSQL database for local development...${NC}"
 cd backend
 
-# Ensure we're using SQLite configuration
-echo -e "${BLUE}Configuring for SQLite...${NC}"
-npm run db:use-sqlite
-if [ $? -ne 0 ]; then
-    echo -e "${RED}✗ Failed to configure SQLite${NC}"
+# make sure postgres is running -  brew services start postgresql@15
+if ! command_exists psql; then
+    echo -e "${RED}✗ PostgreSQL is not installed. Please install PostgreSQL 15+${NC}"
     exit 1
 fi
+if ! psql postgres -c '\q' >/dev/null 2>&1; then
+    echo -e "${RED}✗ PostgreSQL is not running. Please start PostgreSQL service${NC}"
+    echo -e "${YELLOW}  You can start it with: brew services start postgresql@14${NC}"
+    exit 1
+fi
+
 
 # Setup database schema and seed data
-echo -e "${BLUE}Setting up database schema...${NC}"
-npm run db:push
+echo -e "${BLUE}Setting up database...${NC}"
+npm run db:setup
 if [ $? -ne 0 ]; then
-    echo -e "${RED}✗ Failed to push database schema${NC}"
+    echo -e "${RED}✗ Failed to setup database${NC}"
+    echo -e "${YELLOW}  Make sure PostgreSQL is running and DATABASE_URL is correctly configured in .env${NC}"
     exit 1
-fi
-
-# Seed the database
-echo -e "${BLUE}Seeding database with initial data...${NC}"
-npm run db:seed
-if [ $? -ne 0 ]; then
-    echo -e "${YELLOW}⚠ Database seeding failed, but continuing...${NC}"
-    echo -e "${YELLOW}  You can run 'npm run db:seed' manually in the backend directory${NC}"
-else
-    echo -e "${GREEN}✓ Database seeded successfully${NC}"
 fi
 
 cd ..

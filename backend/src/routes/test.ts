@@ -17,15 +17,16 @@ router.get('/email-templates', async (req, res) => {
     const templateServiceReady = templateService.isReady();
     const emailServiceReady = emailService.isReady();
 
-    // Run template tests
-    const testResults = await emailService.testEmailTemplates();
+    // Test email service connection
+    const connectionTest = emailServiceReady ? await emailService.testConnection() : false;
 
     res.json({
       success: true,
       templateServiceReady,
       emailServiceReady,
-      testResults,
+      connectionTest,
       availableTemplates: templateService.getAvailableTemplates(),
+      providers: emailService.getProviders(),
       message: 'Email template test completed'
     });
 

@@ -37,7 +37,7 @@ A comprehensive online system for managing volunteer technical help services for
 ### Backend
 - **Node.js + Express.js** - Modern server framework
 - **TypeScript** - Type-safe development
-- **Prisma ORM** - Database management with SQLite/PostgreSQL support
+- **Prisma ORM** - Database management with PostgreSQL
 - **bcryptjs** - Secure password hashing
 - **express-session** - Session management
 - **Joi** - Comprehensive data validation
@@ -58,6 +58,7 @@ A comprehensive online system for managing volunteer technical help services for
 ### Prerequisites / דרישות מקדימות
 - Node.js 18+
 - npm or yarn
+- PostgreSQL 13+ (see [PostgreSQL Setup Guide](POSTGRESQL_SETUP.md))
 
 ### Installation / התקנה
 
@@ -207,7 +208,7 @@ npm run preview      # Preview production build
 ### Environment Variables / משתני סביבה
 Create `backend/.env`:
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://helpsavta:helpsavta_dev_password@localhost:5432/helpsavta"
 NODE_ENV=development
 PORT=3001
 SESSION_SECRET=your-very-long-random-secret-key
