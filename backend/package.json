@@ -25,11 +25,11 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:email": "ts-node src/scripts/test-email-service.ts",
-    "test:email-simple": "ts-node src/scripts/test-email-simple.ts",
+    "test:email": "ts-node src/__tests__/test-email-service.ts",
+    "test:email-simple": "ts-node src/__tests__/test-email-simple.ts",
     "test:sendgrid": "node ../scripts/test-sendgrid-integration.js",
-    "test:sendgrid-helpsavta": "ts-node src/scripts/test-sendgrid-helpsavta.ts",
-    "test:sendgrid-standalone": "ts-node src/scripts/test-sendgrid-standalone.ts"
+    "test:sendgrid-helpsavta": "ts-node src/__tests__/test-sendgrid-helpsavta.ts",
+    "test:sendgrid-standalone": "ts-node src/__tests__/test-sendgrid-standalone.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
