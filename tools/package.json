@@ -1,0 +1,37 @@
+{
+  "name": "helpsavta-tools",
+  "version": "1.0.0",
+  "description": "Development and deployment tools for HelpSavta",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "echo 'Tools workspace: No tests configured yet'",
+    "email:test": "node email/test-sendgrid-integration.js",
+    "db:backup": "ts-node database/backup-restore.ts",
+    "db:monitor": "ts-node database/db-monitor.ts",
+    "db:migrate-postgresql": "ts-node database/migrate-to-postgresql.ts",
+    "db:use-sqlite": "node database/use-sqlite.js",
+    "db:use-postgresql": "node database/use-postgresql.js",
+    "deploy:setup": "bash deployment/setup-project.sh",
+    "dev:smoke-tests": "bash development/smoke-tests.sh",
+    "clean": "echo 'Tools workspace cleaned'"
+  },
+  "dependencies": {
+    "@types/node": "^20.10.5",
+    "nodemailer": "^7.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^6.4.17"
+  },
+  "keywords": [
+    "tools",
+    "development",
+    "deployment",
+    "database",
+    "email"
+  ],
+  "author": "Tech Help Volunteers",
+  "license": "MIT"
+}
