@@ -7,6 +7,13 @@ dotenv.config();
 
 const prisma = new PrismaClient();
 
+// Environment-aware seeding configuration
+const ENVIRONMENT = process.env.NODE_ENV || 'development';
+const IS_PRODUCTION = ENVIRONMENT === 'production';
+const SKIP_PRODUCTION_SEEDING = process.env.SKIP_PRODUCTION_SEEDING === 'true';
+
+console.log(`🌍 Running in ${ENVIRONMENT} environment`);
+
 // Define slot data type
 interface SlotData {
   date: string;
@@ -18,7 +25,28 @@ interface SlotData {
 async function main() {
   console.log('🌱 Starting database seeding...');
 
-  // Create default admin user
+  // Production safety check
+  if (IS_PRODUCTION && SKIP_PRODUCTION_SEEDING) {
+    console.log('🚨 PRODUCTION: Seeding skipped due to SKIP_PRODUCTION_SEEDING=true');
+    return;
+  }
+
+  if (IS_PRODUCTION) {
+    console.log('⚠️  PRODUCTION ENVIRONMENT: Using safe seeding mode');
+  }
+
+  // Check if this is an existing database with data
+  const existingRequestsCount = await prisma.techRequest.count();
+  const existingAdminsCount = await prisma.adminUser.count();
+  const existingSlotsCount = await prisma.availableSlot.count();
+
+  if (IS_PRODUCTION && (existingRequestsCount > 0 || existingAdminsCount > 1)) {
+    console.log(`🛡️  PRODUCTION: Detected existing data (${existingRequestsCount} requests, ${existingAdminsCount} admins)`);
+    console.log('🛡️  PRODUCTION: Skipping seeding to protect existing data');
+    return;
+  }
+
+  // Create default admin user (PRODUCTION SAFE)
   const defaultAdminUsername = process.env.DEFAULT_ADMIN_USERNAME || 'admin';
   const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'development123';
 
@@ -26,24 +54,19 @@ async function main() {
     console.log('⚠️  Using default admin credentials. Please set DEFAULT_ADMIN_USERNAME and DEFAULT_ADMIN_PASSWORD in .env');
   }
 
-  // Check if admin already exists
-  const existingAdmin = await prisma.adminUser.findUnique({
-    where: { username: defaultAdminUsername }
-  });
-
-  if (existingAdmin) {
-    // Delete existing admin to recreate with proper settings
-    await prisma.adminUser.delete({
-      where: { username: defaultAdminUsername }
-    });
-    console.log(`🗑️  Deleted existing admin user: ${existingAdmin.username}`);
-  }
-
+  // SAFE ADMIN CREATION: Use upsert instead of delete/create
   const saltRounds = 12;
   const password_hash = await bcrypt.hash(defaultAdminPassword, saltRounds);
 
-  const admin = await prisma.adminUser.create({
-    data: {
+  const admin = await prisma.adminUser.upsert({
+    where: { username: defaultAdminUsername },
+    update: IS_PRODUCTION ? {} : {
+      // Only update in development
+      password_hash,
+      is_active: true,
+      role: 'SYSTEM_ADMIN'
+    },
+    create: {
       username: defaultAdminUsername,
       password_hash,
       is_active: true,
@@ -51,50 +74,66 @@ async function main() {
     }
   });
 
-  console.log(`✅ Created admin user: ${admin.username}`);
-
-  // Create some sample available slots for the next 7 days
-  const today = new Date();
-  const slots: SlotData[] = [];
-
-  for (let i = 1; i <= 7; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + i);
-    const dateString = date.toISOString().split('T')[0];
-
-    // Morning slots
-    slots.push({
-      date: dateString as string,
-      start_time: '09:00',
-      end_time: '12:00',
-      is_booked: false
-    });
-
-    // Afternoon slots
-    slots.push({
-      date: dateString as string,
-      start_time: '14:00',
-      end_time: '17:00',
-      is_booked: false
-    });
+  console.log(`✅ ${admin ? 'Ensured' : 'Created'} admin user: ${defaultAdminUsername}`);
+  if (IS_PRODUCTION) {
+    console.log('🛡️  PRODUCTION: Admin password NOT updated (preserving existing)');
   }
 
-  // Create slots if they don't exist
-  for (const slotData of slots) {
-    const existingSlot = await prisma.availableSlot.findFirst({
-      where: {
-        date: slotData.date,
-        start_time: slotData.start_time,
-        end_time: slotData.end_time
-      }
-    });
+  // SAFE SLOT CREATION: Only in development or when no slots exist
+  if (!IS_PRODUCTION || existingSlotsCount === 0) {
+    console.log('📅 Creating sample available slots...');
+    
+    // Create some sample available slots for the next 7 days
+    const today = new Date();
+    const slots: SlotData[] = [];
 
-    if (!existingSlot) {
-      await prisma.availableSlot.create({
-        data: slotData
+    for (let i = 1; i <= 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      const dateString = date.toISOString().split('T')[0];
+
+      // Morning slots
+      slots.push({
+        date: dateString as string,
+        start_time: '09:00',
+        end_time: '12:00',
+        is_booked: false
       });
-      console.log(`✅ Created slot: ${slotData.date} ${slotData.start_time}-${slotData.end_time}`);
+
+      // Afternoon slots
+      slots.push({
+        date: dateString as string,
+        start_time: '14:00',
+        end_time: '17:00',
+        is_booked: false
+      });
     }
+
+    // SAFE SLOT CREATION: Check existence before creating
+    let slotsCreated = 0;
+    for (const slotData of slots) {
+      const existingSlot = await prisma.availableSlot.findFirst({
+        where: {
+          date: slotData.date,
+          start_time: slotData.start_time,
+          end_time: slotData.end_time
+        }
+      });
+
+      if (!existingSlot) {
+        await prisma.availableSlot.create({
+          data: slotData
+        });
+        slotsCreated++;
+        console.log(`✅ Created slot: ${slotData.date} ${slotData.start_time}-${slotData.end_time}`);
+      } else {
+        console.log(`⏭️  Slot exists: ${slotData.date} ${slotData.start_time}-${slotData.end_time}`);
+      }
+    }
+    
+    console.log(`📅 Processed ${slotsCreated} time slots`);
+  } else {
+    console.log(`🛡️  PRODUCTION: Preserving existing ${existingSlotsCount} time slots`);
   }
 
 

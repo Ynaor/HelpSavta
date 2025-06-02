@@ -194,6 +194,21 @@ DEFAULT_ADMIN_USERNAME=admin
 DEFAULT_ADMIN_PASSWORD=change-this-secure-password
 ```
 
+#### 🛡️ Production Data Protection (CRITICAL)
+```bash
+# Set to 'true' to completely skip seeding after initial deployment
+SKIP_PRODUCTION_SEEDING=false
+
+# Environment must be set to 'production' for safety protections
+NODE_ENV=production
+```
+
+**⚠️ CRITICAL PRODUCTION SAFETY:**
+- The seeding process has built-in protections against data loss
+- Admin users will NOT be deleted/recreated in production
+- Existing help requests and user data are automatically protected
+- See `PRODUCTION_SAFETY_GUIDE.md` for complete details
+
 #### Email Configuration (SendGrid - Recommended)
 ```bash
 SENDGRID_API_KEY=SG.your-sendgrid-api-key-here
@@ -426,17 +441,44 @@ If deployment fails:
 
 ### 1. Database Migration and Seeding
 
+#### 🛡️ Production Safety Verification
+**FIRST:** Check the logs for production safety indicators:
+
+```bash
+# SAFE deployment logs should show:
+🌍 Environment: production
+🛡️ PRODUCTION: Using safe seeding mode
+🛡️ PRODUCTION: Detected existing data (X requests, Y admins)
+🛡️ PRODUCTION: Skipping seeding to protect existing data
+```
+
+**OR for fresh deployments:**
+```bash
+🌍 Environment: production
+🛡️ PRODUCTION: Using safe seeding mode
+✅ Ensured admin user: admin
+🛡️ PRODUCTION: Admin password NOT updated (preserving existing)
+```
+
 #### Verify Migration Success
 1. Check backend service logs for migration output
 2. Look for: `"Migration deployed successfully"`
 3. Verify tables exist in Railway database browser
+4. **CRITICAL:** Ensure production safety logs appear
 
 #### Manual Migration (if needed)
 ```bash
 # Connect to backend service terminal
 npx prisma migrate deploy
+# Seeding is automatically safe in production
 npx prisma db seed
 ```
+
+#### ⚠️ Data Loss Prevention
+- **NEVER** run `npx prisma migrate reset` in production
+- **ALWAYS** check logs for production safety messages
+- **VERIFY** `NODE_ENV=production` is set
+- **MONITOR** for any "🗑️ Deleted" messages (should not appear in production)
 
 ### 2. Admin User Creation
 
@@ -643,6 +685,30 @@ npx prisma migrate reset  # Last resort
 - [ ] Regular security updates
 - [ ] Backup encryption
 
+### 🛡️ Production Data Protection
+
+#### Critical Deployment Safety
+- [ ] **NODE_ENV=production** set in backend service
+- [ ] **Production safety logs** appear in deployment logs
+- [ ] **No admin deletion** messages in production logs
+- [ ] **SKIP_PRODUCTION_SEEDING** configured for subsequent deployments
+- [ ] **Database backups** enabled before any deployments
+
+#### Data Loss Prevention
+- [ ] **Environment detection** working correctly
+- [ ] **Existing data protection** verified in logs
+- [ ] **Admin user preservation** confirmed
+- [ ] **Help request data** remains intact
+- [ ] **Time slot configurations** preserved
+
+#### Emergency Procedures
+- [ ] **Railway database backups** accessible
+- [ ] **Rollback procedure** documented and tested
+- [ ] **Recovery plan** established
+- [ ] **Contact information** for Railway support
+
+**📖 Complete Protection Guide**: See [`PRODUCTION_SAFETY_GUIDE.md`](PRODUCTION_SAFETY_GUIDE.md) for comprehensive data protection details.
+
 ### Network Security
 
 - **Internal Communication**: Services communicate via Railway's private network
@@ -685,6 +751,15 @@ Your deployment is successful when:
 - [ ] **Performance**: Response times under 2 seconds
 - [ ] **Security**: All security headers present
 - [ ] **Monitoring**: Logs accessible and readable
+
+### 🛡️ Production Safety Verification
+
+- [ ] **Production Environment**: `NODE_ENV=production` confirmed in logs
+- [ ] **Safety Logs Present**: "🛡️ PRODUCTION" messages in deployment logs
+- [ ] **No Data Deletion**: No "🗑️ Deleted" messages in production
+- [ ] **Admin Preservation**: Existing admin users not recreated
+- [ ] **Data Integrity**: Help requests and user data preserved
+- [ ] **Seeding Safeguards**: Production-safe seeding behavior confirmed
 
 ---
 
