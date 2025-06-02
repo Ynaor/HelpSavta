@@ -1,0 +1,30 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+healthcheck_path = "/health"
+healthcheck_timeout = 30
+restart_policy_type = "ON_FAILURE"
+restart_policy_max_retries = 3
+
+[environments.production.variables]
+NODE_ENV = "production"
+PORT = "3001"
+DATABASE_URL = "${{Postgres.DATABASE_URL}}"
+REDIS_URL = "${{Redis.REDIS_URL}}"
+JWT_SECRET = "${{JWT_SECRET}}"
+SENDGRID_API_KEY = "${{SENDGRID_API_KEY}}"
+SENDGRID_FROM_EMAIL = "${{SENDGRID_FROM_EMAIL}}"
+FRONTEND_URL = "${{FRONTEND_URL}}"
+SESSION_SECRET = "${{SESSION_SECRET}}"
+
+[environments.staging.variables]
+NODE_ENV = "staging"
+PORT = "3001"
+DATABASE_URL = "${{Postgres.DATABASE_URL}}"
+REDIS_URL = "${{Redis.REDIS_URL}}"
+JWT_SECRET = "${{JWT_SECRET}}"
+SENDGRID_API_KEY = "${{SENDGRID_API_KEY}}"
+SENDGRID_FROM_EMAIL = "${{SENDGRID_FROM_EMAIL}}"
+FRONTEND_URL = "${{FRONTEND_URL}}"
+SESSION_SECRET = "${{SESSION_SECRET}}"
