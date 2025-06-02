@@ -1,291 +1,712 @@
-# Railway Deployment Setup Guide for HelpSavta
+# 🚀 Railway Deployment Guide for HelpSavta
 
-## Overview
+A comprehensive guide for deploying the HelpSavta mono-repo application to Railway using Docker containers.
 
-This guide covers the complete Railway deployment setup process for the HelpSavta project. You have already connected your GitHub repository to Railway and created all necessary configuration files. This guide will walk you through creating services, configuring environment variables, and enabling automatic deployments.
+## 📋 Table of Contents
 
-## Current Status Assessment
+1. [🚀 Quick Start (TL;DR)](#-quick-start-tldr)
+2. [📋 Prerequisites](#-prerequisites)
+3. [🏗️ Railway Project Setup](#️-railway-project-setup)
+4. [🗄️ PostgreSQL Database Setup](#️-postgresql-database-setup)
+5. [⚙️ Backend Service Configuration](#️-backend-service-configuration)
+6. [🌐 Frontend Service Configuration](#-frontend-service-configuration)
+7. [🔐 Environment Variables Reference](#-environment-variables-reference)
+8. [🚀 Deployment Process](#-deployment-process)
+9. [✅ Post-Deployment Steps](#-post-deployment-steps)
+10. [🔧 Advanced Configuration](#-advanced-configuration)
+11. [📊 Monitoring & Troubleshooting](#-monitoring--troubleshooting)
 
-### ✅ What's Already Done
-- GitHub repository connected to Railway
-- Railway project created
-- Complete Railway configuration files:
-  - `railway.toml` (root-level config)
-  - `backend/railway.toml` (backend-specific config)
-  - `frontend/railway.toml` (frontend-specific config)
-  - `backend/nixpacks.toml` (build configuration)
-  - `.railwayignore` (deployment exclusions)
+---
 
-### 🔲 What Still Needs to be Done
-- Create backend service in Railway
-- Create frontend service in Railway  
-- Add PostgreSQL database addon
-- Add Redis addon (optional but configured)
-- Configure environment variables
-- Set up service connections
-- Configure deployment triggers
+## 🚀 Quick Start (TL;DR)
 
-## Step-by-Step Setup Process
+**Expected Timeline:** 30-45 minutes  
+**Estimated Cost:** $5-15/month  
+**Services:** Backend + Frontend + PostgreSQL (+ optional Redis)
 
-### Phase 1: Database Setup
+### Quick Deploy Checklist
 
-#### 1. Add PostgreSQL Database
-1. Navigate to your Railway project dashboard
-2. Click **"+ New"** → **"Database"** → **"Add PostgreSQL"**
-3. Railway will automatically provision the database and generate a `DATABASE_URL`
-4. Note: The database URL will be available as `${{Postgres.DATABASE_URL}}`
+- [ ] Railway account with GitHub connected
+- [ ] Fork/clone HelpSavta repository
+- [ ] Create Railway project with 3 services
+- [ ] Deploy PostgreSQL database
+- [ ] Configure backend service with environment variables
+- [ ] Deploy frontend service
+- [ ] Run database migrations
+- [ ] Set up admin user
+- [ ] Test application
 
-#### 2. Add Redis Cache (Optional but Recommended)
-1. Click **"+ New"** → **"Database"** → **"Add Redis"**
-2. Railway will automatically provision Redis and generate a `REDIS_URL`
-3. Note: The Redis URL will be available as `${{Redis.REDIS_URL}}`
+---
 
-### Phase 2: Backend Service Configuration
+## 📋 Prerequisites
 
-#### 1. Create Backend Service
-1. Click **"+ New"** → **"GitHub Repo"**
-2. Select your HelpSavta repository
-3. **Important**: Set the **Root Directory** to `/backend`
-4. Railway will automatically detect the `backend/railway.toml` configuration
-5. The service will initially fail to deploy (this is expected)
+### Required Accounts & Tools
+- **Railway Account**: [Sign up at railway.app](https://railway.app)
+- **GitHub Account**: Connected to Railway
+- **Domain** (Optional): For custom domain setup
+- **SendGrid Account** (Recommended): For email notifications
 
-#### 2. Configure Backend Environment Variables
-Navigate to the backend service settings and add these variables:
+### Repository Access
+- Ensure your HelpSavta repository is accessible on GitHub
+- The repository must contain the Docker files and configuration
 
-```env
+### Cost Considerations
+- **PostgreSQL**: ~$5/month for 1GB database
+- **Backend Service**: ~$5-10/month depending on usage
+- **Frontend Service**: ~$2-5/month for static hosting
+- **Redis** (Optional): ~$3/month for session management
+
+---
+
+## 🏗️ Railway Project Setup
+
+### 1. Create New Railway Project
+
+1. Visit [Railway Dashboard](https://railway.app/dashboard)
+2. Click **"New Project"**
+3. Select **"Deploy from GitHub repo"**
+4. Choose your HelpSavta repository
+
+### 2. Configure Multi-Service Architecture
+
+Railway will detect your mono-repo structure. You'll need to create **3 services**:
+
+```mermaid
+graph LR
+    A[GitHub Repo] --> B[Railway Project]
+    B --> C[Backend Service]
+    B --> D[Frontend Service]
+    B --> E[PostgreSQL Database]
+    B --> F[Redis Service<br/>Optional]
+    
+    C --> G[Port 3001<br/>API Server]
+    D --> H[Port 80<br/>nginx + React]
+    E --> I[PostgreSQL<br/>Database]
+```
+
+### 3. Service Configuration Overview
+
+| Service | Technology | Port | Purpose |
+|---------|------------|------|---------|
+| Backend | Node.js 18 + Express | 3001 | API Server |
+| Frontend | React + nginx | 80 | Web Interface |
+| Database | PostgreSQL | 5432 | Data Storage |
+| Redis (Optional) | Redis | 6379 | Session Store |
+
+---
+
+## 🗄️ PostgreSQL Database Setup
+
+### 1. Add PostgreSQL Database
+
+1. In your Railway project dashboard
+2. Click **"+ New Service"**
+3. Select **"Database"**
+4. Choose **"PostgreSQL"**
+5. Railway will provision the database automatically
+
+### 2. Get Database Connection String
+
+1. Click on your PostgreSQL service
+2. Go to **"Variables"** tab
+3. Copy the `DATABASE_URL` value
+4. Format: `postgresql://username:password@host:port/database`
+
+### 3. Database Configuration
+
+The database will be automatically configured with:
+- **Host**: Internal Railway hostname
+- **Port**: 5432
+- **SSL**: Enabled by default
+- **Connection Pooling**: Managed by Railway
+
+### 4. Database Access
+
+- **Internal Access**: Automatic via `DATABASE_URL`
+- **External Access**: Available via Railway's proxy
+- **Management**: Use Railway's built-in database browser or external tools
+
+---
+
+## ⚙️ Backend Service Configuration
+
+### 1. Create Backend Service
+
+1. Click **"+ New Service"** in your project
+2. Select **"GitHub Repo"**
+3. Choose your repository
+4. Set **Root Directory**: `/backend`
+5. Railway will detect the `Dockerfile`
+
+### 2. Docker Configuration
+
+The backend uses a multi-stage Docker build:
+
+```dockerfile
+# Uses Node.js 18 Alpine for optimal size
+FROM node:18-alpine AS production
+# Includes security hardening with non-root user
+# Health check on /health endpoint
+# Runs on port 3001
+```
+
+### 3. Required Environment Variables
+
+Configure these in the Railway service **Variables** section:
+
+#### Core Configuration
+```bash
 NODE_ENV=production
 PORT=3001
-DATABASE_URL=${{Postgres.DATABASE_URL}}
-REDIS_URL=${{Redis.REDIS_URL}}
-JWT_SECRET=[generate 64-character random string]
-SENDGRID_API_KEY=[your SendGrid API key]
-SENDGRID_FROM_EMAIL=[your verified sender email]
-FRONTEND_URL=[will be set after frontend creation]
-SESSION_SECRET=[generate 64-character random string]
+HOST=0.0.0.0
 ```
 
-**To generate secure secrets:**
+#### Database Configuration
 ```bash
-# Generate JWT_SECRET (64 characters)
-openssl rand -hex 32
-
-# Generate SESSION_SECRET (64 characters)  
-openssl rand -hex 32
+DATABASE_URL=${{Postgres.DATABASE_URL}}  # Auto-filled by Railway
+DB_POOL_MIN=2
+DB_POOL_MAX=20
+DB_POOL_ACQUIRE_TIMEOUT=60000
+DB_POOL_IDLE_TIMEOUT=10000
 ```
 
-### Phase 3: Frontend Service Configuration
+#### Session Management
+```bash
+SESSION_SECRET=your-very-long-random-secret-key-32-plus-characters
+SESSION_MAX_AGE=86400000
+```
 
-#### 1. Create Frontend Service
-1. Click **"+ New"** → **"GitHub Repo"**
-2. Select your HelpSavta repository again
-3. **Important**: Set the **Root Directory** to `/frontend`
-4. Railway will automatically detect the `frontend/railway.toml` configuration
+#### Security Configuration
+```bash
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+```
 
-#### 2. Configure Frontend Environment Variables
-Navigate to the frontend service settings and add these variables:
+#### CORS Configuration
+```bash
+FRONTEND_URL=https://your-frontend-domain.railway.app
+ALLOWED_ORIGINS=https://your-frontend-domain.railway.app
+```
 
-```env
+#### Admin Configuration
+```bash
+DEFAULT_ADMIN_USERNAME=admin
+DEFAULT_ADMIN_PASSWORD=change-this-secure-password
+```
+
+#### Email Configuration (SendGrid - Recommended)
+```bash
+SENDGRID_API_KEY=SG.your-sendgrid-api-key-here
+EMAIL_FROM=noreply@yourdomain.com
+EMAIL_FROM_NAME=Help Savta
+EMAIL_REPLY_TO=support@yourdomain.com
+SUPPORT_EMAIL=support@yourdomain.com
+```
+
+#### SMTP Fallback (Optional)
+```bash
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
+EMAIL_SECURE=true
+```
+
+#### Logging
+```bash
+LOG_LEVEL=info
+HEALTH_CHECK_PATH=/health
+```
+
+### 4. Health Check Configuration
+
+The backend includes automatic health checks:
+- **Endpoint**: `/health`
+- **Interval**: 30 seconds
+- **Timeout**: 3 seconds
+- **Retries**: 3
+
+### 5. Database Migration Setup
+
+The Dockerfile automatically runs:
+```bash
+npx prisma generate  # Generate Prisma client
+npx prisma migrate deploy  # Apply migrations
+```
+
+---
+
+## 🌐 Frontend Service Configuration
+
+### 1. Create Frontend Service
+
+1. Click **"+ New Service"**
+2. Select **"GitHub Repo"**
+3. Choose your repository
+4. Set **Root Directory**: `/frontend`
+5. Railway will detect the `Dockerfile`
+
+### 2. Docker Configuration
+
+The frontend uses nginx for production serving:
+
+```dockerfile
+# Multi-stage build: React build + nginx
+# Optimized static asset serving
+# Health check on /health endpoint
+# Runs on port 80
+```
+
+### 3. Frontend Environment Variables
+
+Configure in Railway Variables:
+
+```bash
+# API Configuration - Point to your backend service
+VITE_API_URL=https://your-backend-service.railway.app/api
+
+# Production optimization
 NODE_ENV=production
-VITE_API_URL=[backend service URL - see step 4]
-VITE_APP_NAME=HelpSavta
-VITE_APP_VERSION=1.0.0
 ```
 
-### Phase 4: Service Interconnection
+### 4. nginx Configuration
 
-#### 1. Get Service URLs
-1. Go to your backend service → **Settings** → copy the **Public Domain**
-2. Go to your frontend service → **Settings** → copy the **Public Domain**
+The frontend Dockerfile includes optimized nginx configuration:
 
-#### 2. Update Cross-Service URLs
-1. **Backend Service**: Update `FRONTEND_URL` with your frontend service URL
-2. **Frontend Service**: Update `VITE_API_URL` with your backend service URL
+- **SPA Routing**: All routes serve `index.html`
+- **Static Asset Caching**: 1-year cache for JS/CSS/images
+- **Security Headers**: XSS protection, content type options
+- **Gzip Compression**: Enabled for optimal performance
+- **Health Check**: `/health` endpoint returns "healthy"
 
-#### 3. Trigger Manual Redeploy
-1. Go to each service → **Deployments** tab
-2. Click **"Redeploy"** for both services
-3. This ensures they pick up the new environment variables
+### 5. API Proxy Configuration
 
-## Deployment Architecture
+The frontend service communicates with the backend via Railway's internal networking:
 
-```mermaid
-graph TB
-    subgraph "GitHub Repository"
-        A[main branch] --> B[Push/Merge Event]
-    end
-    
-    subgraph "Railway Project"
-        B --> C[Automatic Deployment Trigger]
-        
-        subgraph "Services"
-            D[Backend Service<br/>Node.js + Prisma<br/>Port 3001]
-            E[Frontend Service<br/>React + Vite<br/>Static Files]
-            F[PostgreSQL Database<br/>Addon]
-            G[Redis Cache<br/>Addon]
-        end
-        
-        subgraph "Environment Variables"
-            H[Database Connection]
-            I[API Keys]
-            J[JWT Secrets]
-            K[Frontend URLs]
-        end
-        
-        C --> D
-        C --> E
-        D --> F
-        D --> G
-        D --> H
-        D --> I
-        D --> J
-        E --> K
-    end
+```typescript
+// src/services/api.ts
+const api = axios.create({
+  baseURL: '/api',  // Will proxy to backend
+  withCredentials: true,
+});
 ```
 
-## Automatic Deployment Process
+### 6. Custom Domain Setup
 
-### What Happens When You Merge to Main
+1. Go to your frontend service settings
+2. Click **"Domains"**
+3. Add your custom domain
+4. Update DNS with Railway's provided values
+5. SSL certificates are auto-provisioned
 
-```mermaid
-sequenceDiagram
-    participant Dev as Developer
-    participant GH as GitHub
-    participant RW as Railway
-    participant BE as Backend Service
-    participant FE as Frontend Service
-    participant DB as Database
-    
-    Dev->>GH: Push/Merge to main
-    GH->>RW: Webhook trigger
-    
-    par Backend Deployment
-        RW->>BE: Start build process
-        BE->>BE: npm ci
-        BE->>BE: npx prisma generate
-        BE->>BE: npm run build
-        BE->>DB: npx prisma migrate deploy
-        BE->>BE: node dist/server.js
-        BE->>RW: Health check /health
-    and Frontend Deployment
-        RW->>FE: Start build process
-        FE->>FE: npm ci
-        FE->>FE: npm run build
-        FE->>RW: Deploy static files
-    end
-    
-    RW->>Dev: Deployment complete notification
-```
+---
 
-### Backend Deployment Steps
-1. **Build**: `npm ci && npx prisma generate && npm run build`
-2. **Database Migration**: `npx prisma migrate deploy`
-3. **Start**: `node dist/server.js`
-4. **Health Check**: GET `/health` endpoint (30-second timeout)
+## 🔐 Environment Variables Reference
 
-### Frontend Deployment Steps
-1. **Build**: `npm ci && npm run build`
-2. **Deploy**: Static files from `dist/` folder served automatically
+### Complete Production Variables List
 
-## Environment Variables Reference
+#### Backend Service Variables (35+ variables)
 
-### Backend Service Required Variables
+**Core Configuration**
+- `NODE_ENV=production`
+- `PORT=3001`
+- `HOST=0.0.0.0`
 
-| Variable | Source | Description |
-|----------|--------|-------------|
-| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` | Auto-generated PostgreSQL connection |
-| `REDIS_URL` | `${{Redis.REDIS_URL}}` | Auto-generated Redis connection |
-| `JWT_SECRET` | Manual | 64-character random string for JWT signing |
-| `SESSION_SECRET` | Manual | 64-character random string for sessions |
-| `SENDGRID_API_KEY` | Manual | Your SendGrid API key |
-| `SENDGRID_FROM_EMAIL` | Manual | Verified sender email address |
-| `FRONTEND_URL` | Manual | Frontend service public domain |
+**Database**
+- `DATABASE_URL` (auto-filled by Railway)
+- `DB_POOL_MIN=2`
+- `DB_POOL_MAX=20`
+- `DB_POOL_ACQUIRE_TIMEOUT=60000`
+- `DB_POOL_IDLE_TIMEOUT=10000`
 
-### Frontend Service Required Variables
+**Session Management**
+- `SESSION_SECRET` (32+ character random string)
+- `SESSION_MAX_AGE=86400000`
 
-| Variable | Source | Description |
-|----------|--------|-------------|
-| `VITE_API_URL` | Manual | Backend service public domain |
-| `VITE_APP_NAME` | Manual | Application name (HelpSavta) |
-| `VITE_APP_VERSION` | Manual | Current version (1.0.0) |
+**Security**
+- `RATE_LIMIT_WINDOW_MS=900000`
+- `RATE_LIMIT_MAX_REQUESTS=100`
 
-## First Deployment vs Automatic Deployments
+**CORS**
+- `FRONTEND_URL` (your frontend domain)
+- `ALLOWED_ORIGINS` (comma-separated domains)
 
-### First Deployment (Manual Setup Required)
-1. **Initial Service Creation**: Services will fail first deploy due to missing environment variables
-2. **Configuration**: Add all required environment variables
-3. **Manual Redeploy**: Trigger redeploy after configuration
-4. **Database Migration**: First successful backend deploy runs initial migrations
-5. **Verification**: Check health endpoints and service connectivity
+**Admin**
+- `DEFAULT_ADMIN_USERNAME`
+- `DEFAULT_ADMIN_PASSWORD`
 
-### Future Deployments (Fully Automatic)
-- **Trigger**: Any merge to `main` branch
-- **Duration**: ~3-5 minutes total
-- **Process**: Parallel build and deployment of both services
-- **Zero Configuration**: No manual intervention required
+**Email (SendGrid)**
+- `SENDGRID_API_KEY`
+- `EMAIL_FROM`
+- `EMAIL_FROM_NAME`
+- `EMAIL_REPLY_TO`
+- `SUPPORT_EMAIL`
 
-## Verification Steps
+**Email (SMTP Fallback)**
+- `EMAIL_HOST`
+- `EMAIL_PORT`
+- `EMAIL_USER`
+- `EMAIL_PASS`
+- `EMAIL_SECURE`
 
-### 1. Backend Health Check
+**Optional**
+- `SMS_API_KEY`
+- `SMS_PROVIDER`
+- `LOG_LEVEL`
+- `HEALTH_CHECK_PATH`
+
+#### Frontend Service Variables
+
+- `VITE_API_URL` (backend service URL)
+- `NODE_ENV=production`
+
+### Security Best Practices for Secrets
+
+1. **Strong Secrets**: Use 32+ character random strings
+2. **Unique Passwords**: Never reuse default passwords
+3. **API Keys**: Store in Railway's encrypted variable system
+4. **Database URLs**: Use Railway's auto-generated references
+5. **Regular Rotation**: Change secrets periodically
+
+### Railway Variable Management
+
+1. **Service Variables**: Go to service → Variables tab
+2. **Reference Other Services**: Use `${{ServiceName.VARIABLE}}`
+3. **Environment Specific**: Create different environments for staging/production
+4. **Bulk Import**: Use Railway CLI for bulk variable management
+
+---
+
+## 🚀 Deployment Process
+
+### 1. Manual Deployment Steps
+
+#### Step 1: Deploy Database
+1. Create PostgreSQL service (completed above)
+2. Wait for database to be ready
+3. Note the `DATABASE_URL`
+
+#### Step 2: Deploy Backend Service
+1. Create backend service with repository
+2. Set all required environment variables
+3. Deploy and wait for health check to pass
+4. Verify at: `https://your-backend.railway.app/health`
+
+#### Step 3: Deploy Frontend Service
+1. Create frontend service with repository
+2. Set `VITE_API_URL` to backend service URL
+3. Deploy and wait for completion
+4. Verify at: `https://your-frontend.railway.app`
+
+### 2. Automatic Deployment
+
+Railway automatically deploys on:
+- **Git Push**: Pushes to connected branch
+- **Environment Changes**: Variable updates
+- **Manual Trigger**: From Railway dashboard
+
+### 3. Deployment Monitoring
+
+Monitor deployment progress:
+1. **Build Logs**: View real-time build output
+2. **Deploy Status**: Green checkmark indicates success
+3. **Health Checks**: Automatic health monitoring
+4. **Metrics**: CPU, memory, and request metrics
+
+### 4. Rollback Procedures
+
+If deployment fails:
+1. **Automatic Rollback**: Railway keeps previous version running
+2. **Manual Rollback**: Click "Rollback" on previous deployment
+3. **Git Revert**: Revert problematic commits and redeploy
+
+---
+
+## ✅ Post-Deployment Steps
+
+### 1. Database Migration and Seeding
+
+#### Verify Migration Success
+1. Check backend service logs for migration output
+2. Look for: `"Migration deployed successfully"`
+3. Verify tables exist in Railway database browser
+
+#### Manual Migration (if needed)
 ```bash
-curl https://[your-backend-url]/health
+# Connect to backend service terminal
+npx prisma migrate deploy
+npx prisma db seed
 ```
-Expected response: `{"status": "ok", "timestamp": "..."}`
 
-### 2. Frontend Access
-Visit `https://[your-frontend-url]` in browser
+### 2. Admin User Creation
 
-### 3. Database Connectivity
-- Check Railway logs for successful Prisma migrations
-- Look for "Database migration completed" messages
+#### Automatic Creation
+The backend automatically creates admin user on startup using:
+- `DEFAULT_ADMIN_USERNAME`
+- `DEFAULT_ADMIN_PASSWORD`
 
-### 4. API Communication
-- Test frontend → backend requests through the UI
-- Check Network tab in browser DevTools for successful API calls
+#### Manual Verification
+1. Visit: `https://your-frontend.railway.app/admin/login`
+2. Login with configured credentials
+3. Change password immediately after first login
 
-### 5. Monitor Deployment Logs
-- Backend: Look for "Server running on port 3001"
-- Frontend: Look for successful static file deployment
-- Database: Check for migration success messages
+### 3. Email Service Testing
 
-## Troubleshooting Common Issues
+#### Test Email Configuration
+1. Access admin dashboard
+2. Create a test request
+3. Verify email notifications are sent
+4. Check Railway logs for email service status
 
-### Backend Fails to Start
-- **Check**: All environment variables are set
-- **Check**: Database migrations completed successfully  
-- **Check**: Health endpoint responds within 30 seconds
+#### SendGrid Verification
+1. Check SendGrid dashboard for sent emails
+2. Verify domain authentication
+3. Monitor bounce rates and deliverability
 
-### Frontend Shows API Errors
-- **Check**: `VITE_API_URL` points to correct backend URL
-- **Check**: Backend service is running and healthy
-- **Check**: CORS configuration allows frontend domain
+### 4. System Health Verification
 
-### Database Connection Issues
-- **Check**: `DATABASE_URL` is correctly set to `${{Postgres.DATABASE_URL}}`
-- **Check**: PostgreSQL addon is running
-- **Check**: Network connectivity between services
+#### Health Check Endpoints
+- **Backend**: `https://your-backend.railway.app/health`
+- **Frontend**: `https://your-frontend.railway.app/health`
 
-### Environment Variable Issues
-- **Remember**: Frontend variables must start with `VITE_`
-- **Remember**: Backend variables are available at runtime
-- **Remember**: Changes require service redeploy to take effect
+#### Functional Testing
+1. **Public Interface**: Submit help request
+2. **Admin Interface**: Login and manage requests
+3. **Calendar System**: Create and book time slots
+4. **Email Notifications**: Verify email delivery
 
-## Summary
+#### Performance Testing
+1. **Response Times**: Check API response times
+2. **Database Performance**: Monitor query performance
+3. **Frontend Loading**: Verify fast page loads
 
-### Answer to Key Question: "Will merging to main automatically deploy?"
+---
 
-**YES**, but only after completing the initial setup:
+## 🔧 Advanced Configuration
 
-1. ✅ **Services Created**: Backend and frontend services configured
-2. ✅ **Database Added**: PostgreSQL (and optionally Redis) provisioned  
-3. ✅ **Environment Variables Set**: All required variables configured
-4. ✅ **Service URLs Connected**: Frontend and backend can communicate
+### 1. Redis Session Store Setup
 
-Once this setup is complete, every merge to `main` will automatically trigger deployment of both services with zero manual intervention required.
+For improved session management and horizontal scaling:
 
-### Next Steps
-1. Follow Phase 1-4 setup steps above
-2. Verify all services are running correctly
-3. Make a test commit to `main` branch
-4. Confirm automatic deployment works as expected
+#### Add Redis Service
+1. Click **"+ New Service"**
+2. Select **"Database"**
+3. Choose **"Redis"**
+4. Railway provisions Redis automatically
 
-Your Railway configuration files are already optimized for this workflow - you just need to complete the service setup in the Railway dashboard.
+#### Configure Backend for Redis
+Add to backend environment variables:
+```bash
+REDIS_URL=${{Redis.REDIS_URL}}
+```
+
+#### Benefits of Redis Sessions
+- **Scalability**: Support for multiple backend instances
+- **Performance**: Faster session access
+- **Persistence**: Sessions survive service restarts
+
+### 2. Custom Domain with SSL
+
+#### Domain Configuration
+1. **Purchase Domain**: From your preferred registrar
+2. **Add to Railway**: Service settings → Domains
+3. **Update DNS**: Point CNAME to Railway domain
+4. **SSL Certificate**: Auto-provisioned by Railway
+
+#### DNS Configuration Example
+```
+Type: CNAME
+Name: @
+Value: your-service.railway.app
+```
+
+### 3. Performance Optimization
+
+#### Database Optimization
+- **Connection Pooling**: Configured via environment variables
+- **Query Optimization**: Monitor slow queries in logs
+- **Indexing**: Ensure proper database indexes
+
+#### Frontend Optimization
+- **Asset Caching**: Configured in nginx
+- **Compression**: Gzip enabled for static assets
+- **CDN**: Consider Railway's edge caching
+
+#### Backend Optimization
+- **Response Caching**: Implement API response caching
+- **Database Caching**: Add Redis for query caching
+- **Image Optimization**: Optimize static assets
+
+### 4. Scaling Configuration
+
+#### Horizontal Scaling
+- **Multiple Instances**: Increase replica count
+- **Load Balancing**: Automatic via Railway
+- **Session Store**: Required Redis for multi-instance
+
+#### Vertical Scaling
+- **Memory Limits**: Adjust container memory
+- **CPU Limits**: Configure CPU allocation
+- **Database Resources**: Upgrade database plan
+
+---
+
+## 📊 Monitoring & Troubleshooting
+
+### 1. Railway Logging Interface
+
+#### Access Logs
+1. **Service Logs**: Click service → Logs tab
+2. **Real-time**: Live log streaming
+3. **Historical**: Search previous logs
+4. **Filtering**: Filter by severity level
+
+#### Log Types
+- **Application Logs**: Your app's console output
+- **System Logs**: Railway platform logs
+- **Build Logs**: Docker build output
+- **Database Logs**: PostgreSQL logs
+
+### 2. Common Deployment Issues
+
+#### Database Connection Issues
+```bash
+# Error: Connection refused
+# Solution: Check DATABASE_URL format
+DATABASE_URL="postgresql://user:pass@host:port/db?sslmode=require"
+```
+
+#### Migration Failures
+```bash
+# Error: Migration failed
+# Solution: Check database permissions and syntax
+npx prisma migrate reset  # Last resort
+```
+
+#### Environment Variable Issues
+```bash
+# Error: Missing required environment variable
+# Solution: Verify all required variables are set
+```
+
+#### Build Failures
+```bash
+# Error: Docker build failed
+# Solution: Check Dockerfile syntax and dependencies
+```
+
+### 3. Performance Monitoring
+
+#### Built-in Metrics
+- **CPU Usage**: Monitor via Railway dashboard
+- **Memory Usage**: Track memory consumption
+- **Request Metrics**: Response times and error rates
+- **Database Metrics**: Connection count and query performance
+
+#### External Monitoring
+- **Uptime Monitoring**: Use external services (Pingdom, UptimeRobot)
+- **Application Monitoring**: Consider APM tools (DataDog, New Relic)
+- **Log Aggregation**: External log services for advanced analysis
+
+### 4. Backup and Disaster Recovery
+
+#### Database Backups
+- **Automatic Backups**: Railway provides automatic PostgreSQL backups
+- **Manual Backups**: Export database via Railway dashboard
+- **Backup Frequency**: Daily automatic backups retained for 7 days
+
+#### Application Backups
+- **Code Repository**: GitHub serves as code backup
+- **Configuration**: Environment variables backed up with Railway project
+- **File System**: Stateless containers don't require file backups
+
+#### Disaster Recovery Plan
+1. **Database Recovery**: Restore from Railway backup
+2. **Application Recovery**: Redeploy from GitHub
+3. **Configuration Recovery**: Restore environment variables
+4. **DNS Recovery**: Update DNS if needed
+
+---
+
+## 🔒 Security Considerations
+
+### Production Security Checklist
+
+- [ ] Change all default passwords
+- [ ] Use strong session secrets (32+ characters)
+- [ ] Configure CORS properly
+- [ ] Enable rate limiting
+- [ ] Set up proper SSL/TLS
+- [ ] Use environment variables for secrets
+- [ ] Enable security headers
+- [ ] Monitor access logs
+- [ ] Regular security updates
+- [ ] Backup encryption
+
+### Network Security
+
+- **Internal Communication**: Services communicate via Railway's private network
+- **External Access**: Only necessary ports exposed
+- **SSL Termination**: Handled by Railway edge
+- **DDoS Protection**: Basic protection included
+
+---
+
+## 📈 Cost Optimization Tips
+
+### 1. Service Optimization
+- **Right-sizing**: Start with smaller instances, scale as needed
+- **Sleep Mode**: Enable for development environments
+- **Resource Monitoring**: Track actual usage vs allocated
+
+### 2. Database Optimization
+- **Connection Pooling**: Reduce database connections
+- **Query Optimization**: Monitor and optimize slow queries
+- **Data Retention**: Implement data archiving strategies
+
+### 3. Traffic Optimization
+- **Caching**: Implement response caching
+- **CDN**: Use Railway's edge caching
+- **Image Optimization**: Compress images and assets
+
+---
+
+## 🎯 Success Criteria
+
+Your deployment is successful when:
+
+- [ ] **Health Checks Pass**: All services return 200 on health endpoints
+- [ ] **Database Connected**: Backend connects to PostgreSQL successfully
+- [ ] **Migrations Applied**: All database tables created
+- [ ] **Admin Access**: Can login to admin dashboard
+- [ ] **Email Working**: Test emails sent successfully
+- [ ] **Public Interface**: Help request form works
+- [ ] **API Communication**: Frontend communicates with backend
+- [ ] **Performance**: Response times under 2 seconds
+- [ ] **Security**: All security headers present
+- [ ] **Monitoring**: Logs accessible and readable
+
+---
+
+## 📞 Support Resources
+
+### Railway Support
+- **Documentation**: [docs.railway.app](https://docs.railway.app)
+- **Community**: Railway Discord server
+- **Support**: Railway support tickets
+
+### HelpSavta Resources
+- **Repository**: GitHub repository with issues
+- **Documentation**: README.md and project documentation
+- **Email Configuration**: SendGrid documentation
+
+### Emergency Contacts
+- **Railway Status**: [status.railway.app](https://status.railway.app)
+- **SendGrid Status**: SendGrid status page
+- **Database Issues**: Railway database support
+
+---
+
+**🎉 Congratulations! You've successfully deployed HelpSavta to Railway!**
+
+*This guide provides comprehensive deployment instructions for the HelpSavta volunteer technical help platform. For updates and improvements, please refer to the project repository.*

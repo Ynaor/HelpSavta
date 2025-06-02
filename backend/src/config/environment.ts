@@ -16,12 +16,8 @@ const envSchema = Joi.object({
   // Database Configuration
   DATABASE_URL: Joi.string().required(),
   
-  // Redis Configuration (for session store in production)
-  REDIS_URL: Joi.string().when('NODE_ENV', {
-    is: 'production',
-    then: Joi.required(),
-    otherwise: Joi.optional()
-  }),
+  // Redis Configuration (optional for production)
+  REDIS_URL: Joi.string().optional(),
   
   // Session Configuration
   SESSION_SECRET: Joi.string().min(32).required(),
@@ -39,13 +35,20 @@ const envSchema = Joi.object({
   DEFAULT_ADMIN_USERNAME: Joi.string().min(3).required(),
   DEFAULT_ADMIN_PASSWORD: Joi.string().min(8).required(),
   
-  // Email Configuration
-  EMAIL_HOST: Joi.string().required(),
+  // Email Configuration - Flexible SMTP or SendGrid
+  // SMTP Configuration (optional)
+  EMAIL_HOST: Joi.string().optional(),
   EMAIL_PORT: Joi.number().port().default(587),
-  EMAIL_USER: Joi.string().email().required(),
-  EMAIL_PASS: Joi.string().required(),
-  EMAIL_FROM: Joi.string().email().required(),
+  EMAIL_USER: Joi.string().email().optional(),
+  EMAIL_PASS: Joi.string().optional(),
+  EMAIL_FROM: Joi.string().email().optional(),
   EMAIL_SECURE: Joi.boolean().default(false),
+
+  // SendGrid Configuration (optional)
+  SENDGRID_API_KEY: Joi.string().optional(),
+  EMAIL_FROM_NAME: Joi.string().default('Help Savta'),
+  EMAIL_REPLY_TO: Joi.string().email().optional(),
+  SUPPORT_EMAIL: Joi.string().email().optional(),
   
   // SMS Configuration (optional)
   SMS_API_KEY: Joi.string().optional(),
@@ -71,6 +74,18 @@ const { error, value: env } = envSchema.validate(process.env);
 
 if (error) {
   throw new Error(`Environment validation error: ${error.message}`);
+}
+
+// Custom validation: Ensure at least one email service is configured
+const hasSmtpConfig = env.EMAIL_HOST && env.EMAIL_USER && env.EMAIL_PASS && env.EMAIL_FROM;
+const hasSendGridConfig = env.SENDGRID_API_KEY;
+
+if (!hasSmtpConfig && !hasSendGridConfig) {
+  throw new Error(
+    'Environment validation error: At least one email service must be configured. ' +
+    'Either provide SMTP configuration (EMAIL_HOST, EMAIL_USER, EMAIL_PASS, EMAIL_FROM) ' +
+    'or SendGrid configuration (SENDGRID_API_KEY).'
+  );
 }
 
 // Environment configuration object
@@ -99,10 +114,10 @@ export const environment = {
     },
   },
   
-  // Redis (for production session store)
+  // Redis (optional for production session store)
   redis: {
     url: env.REDIS_URL,
-    enabled: env.NODE_ENV === 'production' && !!env.REDIS_URL,
+    enabled: !!env.REDIS_URL,
   },
   
   // Session
@@ -136,6 +151,7 @@ export const environment = {
   
   // Email
   email: {
+    // SMTP Configuration
     host: env.EMAIL_HOST,
     port: env.EMAIL_PORT,
     secure: env.EMAIL_SECURE,
@@ -144,6 +160,21 @@ export const environment = {
       pass: env.EMAIL_PASS,
     },
     from: env.EMAIL_FROM,
+    
+    // SendGrid Configuration
+    sendgrid: {
+      apiKey: env.SENDGRID_API_KEY,
+      enabled: !!env.SENDGRID_API_KEY,
+    },
+    
+    // Common Email Configuration
+    fromName: env.EMAIL_FROM_NAME,
+    replyTo: env.EMAIL_REPLY_TO,
+    supportEmail: env.SUPPORT_EMAIL,
+    
+    // Determine which service to use
+    usesSendGrid: !!env.SENDGRID_API_KEY,
+    usesSmtp: !!env.EMAIL_HOST,
   },
   
   // SMS (optional)
