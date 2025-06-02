@@ -601,10 +601,8 @@ router.post('/requests/:id/take', requireAnyAdmin, validateBody(schemas.adminTak
     try {
       if (existingRequest.email && existingRequest.full_name) {
         await emailService.sendStatusUpdateEmail(
-          existingRequest.email,
-          existingRequest.full_name,
-          requestId.toString(),
-          'in_progress'
+          updatedRequest,
+          updatedRequest.assigned_admin
         );
         console.log(`📧 Status update email sent for request #${requestId}`);
       } else {

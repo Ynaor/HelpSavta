@@ -37,7 +37,7 @@ A comprehensive online system for managing volunteer technical help services for
 ### Backend
 - **Node.js + Express.js** - Modern server framework
 - **TypeScript** - Type-safe development
-- **Prisma ORM** - Database management with SQLite/PostgreSQL support
+- **Prisma ORM** - Database management with PostgreSQL
 - **bcryptjs** - Secure password hashing
 - **express-session** - Session management
 - **Joi** - Comprehensive data validation
@@ -58,6 +58,7 @@ A comprehensive online system for managing volunteer technical help services for
 ### Prerequisites / דרישות מקדימות
 - Node.js 18+
 - npm or yarn
+- PostgreSQL 13+ (see [PostgreSQL Setup Guide](POSTGRESQL_SETUP.md))
 
 ### Installation / התקנה
 
@@ -207,7 +208,7 @@ npm run preview      # Preview production build
 ### Environment Variables / משתני סביבה
 Create `backend/.env`:
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://helpsavta:helpsavta_dev_password@localhost:5432/helpsavta"
 NODE_ENV=development
 PORT=3001
 SESSION_SECRET=your-very-long-random-secret-key
@@ -229,239 +230,6 @@ EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your-app-password
 ```
 
-## 🚀 Simplified CI/CD Pipeline / צינור אינטגרציה ופריסה מופשט
-
-HelpSavta has been redesigned with a **simplified CI/CD pipeline** using modern Azure serverless services for 90% cost reduction while maintaining all functionality.
-
-### 🏗️ Simplified Architecture Overview
-
-**New Architecture: Azure Static Web Apps + Azure Container Apps**
-
-```mermaid
-graph TB
-    subgraph "GitHub"
-        A[Source Code] --> B[GitHub Actions CI/CD]
-        B --> C[GitHub Releases/Artifacts]
-    end
-    
-    subgraph "Azure - Minimal Resources"
-        D[Azure Static Web Apps] --> E[Frontend Hosting]
-        F[Azure Container Apps] --> G[Backend API]
-        H[Azure Database for PostgreSQL] --> G
-        I[Azure Key Vault] --> G
-    end
-    
-    C --> D
-    C --> F
-```
-
-### 📋 Simplified Pipeline Overview
-
-#### 1. **PR Validation** - Pull Request Triggers
-The PR validation pipeline ([`pr-validation.yml`](.github/workflows/pr-validation.yml)) runs on pull requests:
-
-- ✅ **Build and Test Only** - No deployment on PRs
-- ✅ **Frontend Tests** - Lint, test, and build verification
-- ✅ **Backend Tests** - Unit tests and build verification
-- ✅ **Validation Gate** - Tests MUST pass before PR can be merged
-
-#### 2. **Production Deployment** - Main Branch Only
-The deployment pipeline ([`deploy-simplified.yml`](.github/workflows/deploy-simplified.yml)) triggers on main branch merges:
-
-- 🔨 **Build and Test** - Full validation before deployment
-- 📦 **Create Artifacts** - Store build artifacts in GitHub
-- 🌐 **Deploy Frontend** - Direct deployment to Azure Static Web Apps
-- 🐳 **Deploy Backend** - Container deployment to Azure Container Apps
-- 🗄️ **Database Migrations** - Automatic Prisma migrations
-- 🔍 **Health Checks** - Comprehensive deployment verification
-
-### 🎯 Simplified Azure Infrastructure
-
-**Cost Comparison:**
-- **Before**: ~$242/month (App Service Plan P1v3, Redis, Container Registry, etc.)
-- **After**: ~$26/month (Static Web Apps Free + Container Apps + PostgreSQL Burstable)
-- **Savings**: 90% cost reduction (~$216/month)
-
-**New Infrastructure (Bicep template: [`azure/simplified-main.bicep`](azure/simplified-main.bicep)):**
-- ✅ **Azure Static Web Apps** - Frontend hosting (Free tier)
-- ✅ **Azure Container Apps** - Backend API (serverless, scale-to-zero)
-- ✅ **PostgreSQL Flexible Server** - Database (Burstable tier)
-- ✅ **Azure Key Vault** - Secrets management (kept from old setup)
-- ❌ **Removed**: App Service, Container Registry, Redis, Application Insights, CDN, Storage Account
-
-### 🧹 Migration and Cleanup
-
-**Azure Resource Cleanup:**
-```bash
-# Clean up old expensive Azure resources
-./scripts/cleanup-azure-resources.sh
-
-# Deploy new simplified infrastructure
-az deployment group create \
-  --resource-group helpsavta-prod-rg \
-  --template-file azure/simplified-main.bicep \
-  --parameters @azure/simplified-parameters.json
-```
-
-**Files Removed:**
-- Old CI/CD workflows (`ci.yml`, `deploy.yml`)
-- Complex Azure infrastructure (`main.bicep`, multiple parameter files)
-- Docker compose files (no longer needed)
-- Complex deployment scripts
-- Frontend Docker files (Static Web Apps handles this)
-
-### 🔐 Required GitHub Secrets Configuration
-
-**Complete GitHub Secrets Setup Guide:** See [`DEPLOYMENT_SECRETS.md`](DEPLOYMENT_SECRETS.md) for comprehensive configuration instructions.
-
-**Required Repository Secrets:**
-```bash
-# Azure Authentication
-AZURE_CREDENTIALS - Service principal JSON (clientId, clientSecret, subscriptionId, tenantId)
-AZURE_SUBSCRIPTION_ID - Azure subscription: 6720ecf6-4ad2-4909-b6b6-4696eb862b26
-AZURE_RESOURCE_GROUP - Resource group: helpsavta-prod-rg
-
-# Azure Container Registry
-AZURE_CONTAINER_REGISTRY - ACR login server (e.g., helpsavtaprodacr.azurecr.io)
-AZURE_CONTAINER_REGISTRY_USERNAME - ACR username
-AZURE_CONTAINER_REGISTRY_PASSWORD - ACR access key
-
-# Azure Static Web Apps
-AZURE_STATIC_WEB_APPS_API_TOKEN - Deployment token (regenerate if expired)
-
-# Database and Application
-DATABASE_URL_PRODUCTION - PostgreSQL connection string
-SENDGRID_API_KEY - Email service API key
-SESSION_SECRET - Strong session secret (32+ characters)
-ADMIN_USERNAME - Default admin username
-ADMIN_PASSWORD - Strong admin password
-EMAIL_FROM - From email address (e.g., noreply@helpsavta.com)
-```
-
-**⚠️ Common Issue**: Static Web Apps token expiration causes `deployment_token provided was invalid` error.
-**Solution**: Regenerate token in Azure Portal → Static Web Apps → Manage deployment token.
-
-See [`DEPLOYMENT_SECRETS.md`](DEPLOYMENT_SECRETS.md) for:
-- Step-by-step Azure Portal instructions
-- Token regeneration procedures
-- Verification commands for each secret
-- Troubleshooting guide for common issues
-
-### 📊 Simple Analytics
-
-**Built-in User Metrics Collection:**
-- IP address and location tracking
-- User agent and device information
-- Endpoint usage analytics
-- Timestamp and session tracking
-
-Implementation: [`backend/src/middleware/analytics.ts`](backend/src/middleware/analytics.ts)
-
-### 🚀 Deployment Process
-
-1. **Create PR** → Triggers validation (build + test only)
-2. **Merge to Main** → Triggers full deployment:
-   - Build and test both frontend and backend
-   - Create deployment artifacts
-   - Deploy frontend to Static Web Apps
-   - Deploy backend to Container Apps
-   - Run database migrations
-   - Verify deployment health
-
-### 🎯 Benefits of Simplified Architecture
-
-- ✅ **90% Cost Reduction** - From ~$242 to ~$26/month
-- ✅ **Zero Server Management** - Fully serverless architecture
-- ✅ **Auto-scaling** - Scale to zero when not in use
-- ✅ **Global CDN** - Built into Static Web Apps
-- ✅ **Automatic HTTPS** - SSL certificates handled automatically
-- ✅ **Simplified Operations** - Minimal maintenance required
-
-## 🧪 Testing / בדיקות
-
-### SendGrid Email Testing
-```bash
-# Test SendGrid configuration and email delivery
-cd backend
-npm run test:sendgrid-standalone your-email@example.com
-
-# Test specific email types
-npm run test:sendgrid-standalone your-email@example.com simple
-npm run test:sendgrid-standalone your-email@example.com template
-npm run test:sendgrid-standalone your-email@example.com both
-```
-
-**Note:** Before testing emails, you need to:
-1. Set up SendGrid account and get API key
-2. Update `SENDGRID_API_KEY` in `backend/.env`
-3. See [`SENDGRID_SETUP_INSTRUCTIONS.md`](SENDGRID_SETUP_INSTRUCTIONS.md) for complete setup guide
-
-### Integration Testing
-```bash
-# Run full integration test suite
-./test-integration.sh
-
-# Test admin-specific features
-./test-admin-features.sh
-
-# Manual health check
-curl http://localhost:3001/health
-```
-
-### Manual Testing Checklist
-- [ ] Home page loads with Hebrew content
-- [ ] Help request form submission works
-- [ ] Time slot selection functions
-- [ ] Admin login and authentication
-- [ ] Dashboard displays statistics
-- [ ] Request management (view, edit, filter)
-- [ ] Time slot management
-- [ ] Email notifications (if configured)
-- [ ] Mobile responsiveness
-- [ ] Browser compatibility
-
-## 📊 Current Status / סטטוס נוכחי
-
-**🚀 Production Ready: ✅ All Critical Deployment Blockers Resolved**
-
-The HelpSavta application is fully functional and ready for immediate production deployment. **Latest Critical Updates (2025-05-31T09:55):**
-
-### 🚨 **Critical Deployment Blockers Fixed**
-- ✅ **Resource Group Name Mismatch** - All workflows now correctly target `helpsavta-prod-rg` instead of `helpsavta-production`
-- ✅ **Container Registry Strategy** - Validated consistent GitHub Container Registry usage across all components
-- ✅ **Key Vault Integration** - Fixed Container Apps Key Vault format from incorrect `@Microsoft.KeyVault(...)` to proper `secretRef` with `keyVaultUrl`
-- ✅ **Database Migration Strategy** - Consolidated to single migration point in Docker entrypoint, eliminating conflicts
-- ✅ **Cross-Region Database Connectivity** - Enhanced connection string for optimal West Europe ↔ North Europe connectivity
-
-### 🎯 **Infrastructure Ready Status**
-| Component | Status | Deployment Ready |
-|-----------|--------|------------------|
-| **Resource Group Targeting** | ✅ **FIXED** | All workflows target correct production resource group |
-| **Container Registry** | ✅ **VALIDATED** | Consistent GitHub Container Registry strategy |
-| **Key Vault Integration** | ✅ **FIXED** | Container Apps can now access secrets properly |
-| **Migration Strategy** | ✅ **CONSOLIDATED** | No conflicts, single reliable migration approach |
-| **Database Connectivity** | ✅ **ENHANCED** | Optimized for cross-region reliability |
-
-### 🚀 **Previous Major Achievements**
-- ✅ **Complete CI/CD Pipeline Suite** - 4 specialized workflows for backend, frontend, infrastructure, and environment management
-- ✅ **Simplified Azure Architecture** - 90% cost reduction from ~$242 to ~$26/month using serverless Container Apps
-- ✅ **Production-Safe Database Migrations** - Docker entrypoint uses `prisma migrate deploy` for production safety
-- ✅ **Dynamic Health Checks** - Real-time URL discovery and comprehensive endpoint verification
-- ✅ **Comprehensive Error Handling** - Retry logic, timeouts, and clear error reporting throughout pipeline
-- ✅ **GitHub Secrets Documentation** - Complete configuration guide in [`DEPLOYMENT_SECRETS.md`](DEPLOYMENT_SECRETS.md)
-
-### **🎯 Deployment Command Ready**
-```bash
-# All critical blockers resolved - safe to deploy immediately
-git push origin main
-
-# Or manual trigger: GitHub Actions → Deploy Infrastructure → Run workflow
-```
-
-**🚀 Deployment Status**: **ALL CRITICAL DEPLOYMENT BLOCKERS ELIMINATED** - The infrastructure is production-ready with all validation report issues resolved.
-
-All core features implemented, tested, and deployment pipeline operational. For comprehensive status details, see [`project_status.md`](project_status.md).
-
 ## 🤝 Contributing / תרומה
 
 1. Fork the repository
@@ -472,13 +240,6 @@ All core features implemented, tested, and deployment pipeline operational. For 
 6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request
 
-## 📞 Support / תמיכה
-
-For support, questions, or feature requests:
-- **Issues**: Create an issue in the repository
-- **Current Status**: Check [`project_status.md`](project_status.md) for system metrics and known issues
-- **Email Setup**: See [`SENDGRID_SETUP_INSTRUCTIONS.md`](SENDGRID_SETUP_INSTRUCTIONS.md) for complete SendGrid configuration guide
-- **Email System**: SendGrid integration with Hebrew RTL templates (✅ RTL alignment fixed), SMTP fallback, and Azure KeyVault production configuration
 
 ## 📄 License / רישיון
 

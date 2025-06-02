@@ -1,32 +1,26 @@
 {
-  "name": "Help-Savta",
+  "name": "helpsavta",
   "version": "1.0.0",
   "description": "Technical Help Volunteer Platform - עזרה טכנית בהתנדבות",
-  "main": "index.js",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "build": "npm run build:backend && npm run build:frontend",
-    "build:backend": "cd backend && npm run build",
-    "build:frontend": "cd frontend && npm run build",
-    "start": "cd backend && npm start",
-    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
-    "db:setup": "cd backend && npm run db:generate && npm run db:push && npm run db:seed",
-    "db:reset": "cd backend && rm -f dev.db && npm run db:push && npm run db:seed",
-    "db:seed": "cd backend && npm run db:seed",
-    "test": "npm run test:backend && npm run test:frontend",
-    "test:backend": "cd backend && npm test",
-    "test:frontend": "cd frontend && npm test",
-    "lint": "npm run lint:backend && npm run lint:frontend",
-    "lint:backend": "cd backend && npm run lint",
-    "lint:frontend": "cd frontend && npm run lint",
-    "clean": "rm -rf backend/dist && rm -rf frontend/dist && rm -rf backend/node_modules && rm -rf frontend/node_modules && rm -rf node_modules",
+    "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
+    "build": "npm run build --workspaces",
+    "start": "npm run start --workspace=backend",
+    "test": "npm run test --workspaces",
+    "test:e2e": "npm run test:e2e --workspace=tests",
+    "lint": "npm run lint --workspaces",
+    "lint:fix": "npm run lint:fix --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "clean": "npm run clean --workspaces && rm -rf node_modules",
+    "clean:deep": "npm run clean && rm -rf **/node_modules **/.next **/dist **/build",
+    "db:setup": "npm run db:setup --workspace=backend",
+    "db:reset": "npm run db:reset --workspace=backend",
+    "db:seed": "npm run db:seed --workspace=backend",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f",
-    "backup:db": "cd backend && cp dev.db ../backups/backup_$(date +%Y%m%d_%H%M%S).db",
     "health": "curl http://localhost:3001/health"
   },
   "keywords": [
@@ -39,12 +33,16 @@
     "nodejs",
     "express",
     "prisma",
-    "sqlite"
+    "postgresql"
   ],
   "author": "Tech Help Volunteers",
   "license": "MIT",
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@types/node": "^20.10.5",
+    "concurrently": "^8.2.2",
+    "dotenv": "^16.3.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
   },
   "engines": {
     "node": ">=18.0.0",
@@ -60,9 +58,7 @@
   "homepage": "https://github.com/your-username/Help-Savta#readme",
   "workspaces": [
     "backend",
-    "frontend"
-  ],
-  "dependencies": {
-    "axios": "^1.9.0"
-  }
+    "frontend",
+    "tests"
+  ]
 }
