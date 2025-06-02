@@ -63,9 +63,9 @@ COPY --chown=nodejs:nodejs prisma ./prisma/
 # Copy email templates and other assets
 COPY --chown=nodejs:nodejs src/templates ./src/templates/
 
-# Run database migrations and seeding as root user (before switching to nodejs user)
-RUN npx prisma migrate deploy
-RUN npx prisma db seed
+# Copy startup script
+COPY --chown=nodejs:nodejs start.sh ./start.sh
+RUN chmod +x start.sh
 
 # Switch to non-root user
 USER nodejs
@@ -77,5 +77,5 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3001/health || exit 1
 
-# Start the application
-CMD ["node", "dist/server.js"]
+# Start the application using startup script
+CMD ["./start.sh"]
