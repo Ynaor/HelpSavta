@@ -26,7 +26,7 @@
     "typecheck": "tsc --noEmit"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "node prisma/seed-wrapper.js"
   },
   "keywords": [
     "volunteer",
