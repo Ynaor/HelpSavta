@@ -64,7 +64,7 @@ COPY --chown=nodejs:nodejs prisma ./prisma/
 COPY --chown=nodejs:nodejs src/templates ./src/templates/
 
 # Copy startup script and make it executable
-COPY --chown=nodejs:nodejs ./start.sh ./start.sh
+COPY --chown=nodejs:nodejs start.sh ./start.sh
 RUN chmod +x ./start.sh && ls -la ./start.sh
 
 # Switch to non-root user
