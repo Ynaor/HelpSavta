@@ -36,9 +36,28 @@ async function main() {
   }
 
   // Check if this is an existing database with data
-  const existingRequestsCount = await prisma.techRequest.count();
-  const existingAdminsCount = await prisma.adminUser.count();
-  const existingSlotsCount = await prisma.availableSlot.count();
+  // Wrap in try-catch to handle cases where tables don't exist yet
+  let existingRequestsCount = 0;
+  let existingAdminsCount = 0;
+  let existingSlotsCount = 0;
+
+  try {
+    existingRequestsCount = await prisma.techRequest.count();
+  } catch (error) {
+    console.log('📊 Table tech_requests does not exist yet, proceeding with initial seeding');
+  }
+
+  try {
+    existingAdminsCount = await prisma.adminUser.count();
+  } catch (error) {
+    console.log('📊 Table admin_users does not exist yet, proceeding with initial seeding');
+  }
+
+  try {
+    existingSlotsCount = await prisma.availableSlot.count();
+  } catch (error) {
+    console.log('📊 Table available_slots does not exist yet, proceeding with initial seeding');
+  }
 
   if (IS_PRODUCTION && (existingRequestsCount > 0 || existingAdminsCount > 1)) {
     console.log(`🛡️  PRODUCTION: Detected existing data (${existingRequestsCount} requests, ${existingAdminsCount} admins)`);
