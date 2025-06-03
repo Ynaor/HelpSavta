@@ -116,17 +116,66 @@ If using Railway internal URLs, you **MUST** include:
    - Symptom: Still getting 404 errors
    - Solution: Double-check `VITE_API_URL` is set in Railway frontend service variables
 
-3. **Wrong backend URL**
+3. **CORS configuration issues**
+   - Symptom: "No 'Access-Control-Allow-Origin' header is present" errors
+   - Solution: Configure backend `FRONTEND_URL` environment variable to match your frontend domain
+   - See CORS Configuration section below
+
+4. **Wrong backend URL**
    - Symptom: CORS errors or connection timeouts
    - Solution: Verify the backend service URL is correct and accessible
 
-4. **Build-time vs Runtime variables**
+5. **Build-time vs Runtime variables**
    - Important: Vite environment variables are embedded at build time
    - Must redeploy frontend service after changing `VITE_API_URL`
 
-5. **Railway internal networking not working**
+6. **Railway internal networking not working**
    - Symptom: Timeouts when using `*.railway.internal` URLs
    - Solution: Switch to public URL format: `https://your-backend-service.up.railway.app/api`
+
+## CORS Configuration
+
+For Railway deployment, you must configure CORS on the backend to allow requests from your frontend domain.
+
+### Backend CORS Setup
+
+1. **Set Frontend URL Environment Variable** (Required)
+   In your Railway backend service, add:
+   ```
+   FRONTEND_URL=https://frontend-production-72eb.up.railway.app
+   ```
+   Replace with your actual frontend Railway domain.
+
+2. **Optional: Multiple Origins**
+   If you need to allow multiple domains:
+   ```
+   ALLOWED_ORIGINS=https://yourdomain.com,https://frontend-production-72eb.up.railway.app
+   ```
+
+### How CORS Works in the Application
+
+- **Development**: CORS allows all origins (`origin: true`)
+- **Production**: CORS only allows specified origins from `FRONTEND_URL` or `ALLOWED_ORIGINS`
+- **Credentials**: CORS is configured to support cookies/sessions (`credentials: true`)
+- **Methods**: Supports GET, POST, PUT, DELETE, OPTIONS
+- **Headers**: Allows Content-Type, Authorization, X-Requested-With
+
+### CORS Troubleshooting
+
+1. **Verify Backend Environment Variables**
+   - Check that `FRONTEND_URL` is set correctly in Railway backend service
+   - Ensure the URL matches exactly (including protocol: `https://`)
+   - No trailing slashes in the URL
+
+2. **Check CORS Headers**
+   - Use browser dev tools → Network tab
+   - Look for `Access-Control-Allow-Origin` header in API responses
+   - Should match your frontend domain
+
+3. **Test CORS Preflight**
+   - Complex requests trigger OPTIONS preflight requests
+   - Verify OPTIONS requests are successful (200 status)
+   - Check for proper CORS headers in OPTIONS response
 
 ### Getting Backend Service URL
 1. In Railway dashboard, go to your backend service

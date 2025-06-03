@@ -156,10 +156,50 @@ export const environment = {
       max: env.RATE_LIMIT_MAX_REQUESTS,
     },
     cors: {
-      origin: env.NODE_ENV === 'production' 
-        ? (env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(',') : [env.FRONTEND_URL])
-        : true,
+      origin: (origin, callback) => {
+        // Get current environment values (allows for runtime changes in tests)
+        const currentEnv = process.env.NODE_ENV || 'development';
+        const frontendUrl = process.env.FRONTEND_URL;
+        const allowedOrigins = process.env.ALLOWED_ORIGINS;
+
+        // Allow all origins in development and test environments
+        if (currentEnv === 'development' || currentEnv === 'test') {
+          return callback(null, true);
+        }
+
+        // Production CORS logic
+        if (currentEnv === 'production' || currentEnv === 'staging') {
+          let allowedOriginsList: string[] = [];
+
+          if (allowedOrigins && allowedOrigins.trim()) {
+            allowedOriginsList = allowedOrigins
+              .split(',')
+              .map(o => o.trim())
+              .filter(o => o.length > 0);
+          } else if (frontendUrl) {
+            allowedOriginsList = [frontendUrl];
+          }
+
+          // If no origin header (like direct API calls), allow it
+          if (!origin) {
+            return callback(null, true);
+          }
+
+          // Check if origin is in allowed list
+          if (allowedOriginsList.includes(origin)) {
+            return callback(null, true);
+          }
+
+          // Reject the origin
+          return callback(new Error('Not allowed by CORS'), false);
+        }
+
+        // Default: allow
+        callback(null, true);
+      },
       credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     },
   },
   
