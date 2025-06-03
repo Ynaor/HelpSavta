@@ -28,6 +28,35 @@ export const prisma = environment.isProduction || environment.isStaging
 // Create Express app
 const app = express();
 
+// Configure proxy trust for Railway deployment
+// Railway uses reverse proxies, so we need to trust them for rate limiting to work correctly
+const getTrustProxyValue = () => {
+  const trustProxy = environment.security.proxy.trust;
+  
+  // For Railway deployment (staging/production), trust the first proxy
+  if (environment.isProduction || environment.isStaging) {
+    return 1; // Trust first proxy (Railway's load balancer)
+  }
+  
+  // Handle string values
+  if (trustProxy === 'true') {
+    return true;
+  } else if (trustProxy === 'false') {
+    return false;
+  }
+  
+  // Handle numeric values (number of proxies to trust)
+  const numericValue = parseInt(trustProxy, 10);
+  if (!isNaN(numericValue)) {
+    return numericValue;
+  }
+  
+  // For development, don't trust any proxies by default
+  return false;
+};
+
+app.set('trust proxy', getTrustProxyValue());
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {

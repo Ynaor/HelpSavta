@@ -27,6 +27,9 @@ const envSchema = Joi.object({
   RATE_LIMIT_WINDOW_MS: Joi.number().default(15 * 60 * 1000), // 15 minutes
   RATE_LIMIT_MAX_REQUESTS: Joi.number().default(100),
   
+  // Proxy Configuration
+  TRUST_PROXY: Joi.string().default('false'), // Can be 'true', 'false', number, or specific IPs
+  
   // CORS Configuration
   FRONTEND_URL: Joi.string().custom((value, helpers) => {
     // Allow Railway template placeholders like ${{Frontend.${{RAILWAY_PUBLIC_DOMAIN}}}}
@@ -154,6 +157,9 @@ export const environment = {
     rateLimit: {
       windowMs: env.RATE_LIMIT_WINDOW_MS,
       max: env.RATE_LIMIT_MAX_REQUESTS,
+    },
+    proxy: {
+      trust: env.TRUST_PROXY,
     },
     cors: {
       origin: (origin, callback) => {
