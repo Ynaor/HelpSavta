@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Phone, Mail, Home, LogOut, Users, Calendar } from 'lucide-react';
 import { Button } from '../ui/button';
 import { authAPI } from '../../services/api';
+import tabImage from '../../assets/tab_image.png';
 
 interface LayoutProps {
   children?: React.ReactNode;
@@ -48,7 +49,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="flex items-center space-x-reverse space-x-2 md:space-x-4">
               <div className="flex-shrink-0">
                 <img
-                  src="/tab_image.png"
+                  src={tabImage}
                   alt="לוגו עזרה טכנית בהתנדבות"
                   className="w-12 h-12 md:w-16 md:h-16 rounded-lg object-contain"
                 />

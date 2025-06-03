@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Phone, Computer, Smartphone, Tv, Wifi, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import tabImage from '../assets/tab_image.png';
 
 const Home: React.FC = () => {
   return (
@@ -13,7 +14,7 @@ const Home: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="mb-4 md:mb-6">
             <img
-              src="/tab_image.png"
+              src={tabImage}
               alt="לוגו עזרה טכנית בהתנדבות"
               className="brand-hero-logo"
             />

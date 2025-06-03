@@ -4,7 +4,15 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: './', // This ensures assets are loaded relative to index.html
+  base: '/', // Ensures assets are loaded from root path
+  build: {
+    assetsDir: 'assets', // Place generated assets in the assets directory
+    rollupOptions: {
+      output: {
+        assetFileNames: 'assets/[name]-[hash][extname]' // Consistent asset naming
+      }
+    }
+  },
   plugins: [react()],
   resolve: {
     alias: {
