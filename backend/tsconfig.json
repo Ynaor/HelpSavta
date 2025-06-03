@@ -1,7 +1,18 @@
 {
-  "extends": "../tsconfig.base.json",
   "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020"],
     "module": "commonjs",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
     "types": ["jest", "node"],
     "outDir": "./dist",
     "rootDir": "./src",
@@ -20,6 +31,11 @@
     "src/**/*"
   ],
   "exclude": [
-    "prisma/**/*"
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "scripts",
+    "prisma"
   ]
 }

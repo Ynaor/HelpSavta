@@ -17,9 +17,20 @@ import {
   CalendarQueryParams
 } from '../types';
 
+// Get API URL from environment variable, fallback to '/api' for development
+const getApiUrl = () => {
+  const apiUrl = import.meta.env.VITE_API_URL;
+  if (apiUrl) {
+    console.log('🌐 [API] Using environment API URL:', apiUrl);
+    return apiUrl;
+  }
+  console.log('🌐 [API] Using development API URL: /api (with Vite proxy)');
+  return '/api';
+};
+
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: getApiUrl(),
   timeout: 10000,
   withCredentials: true, // Important for session cookies
   headers: {
