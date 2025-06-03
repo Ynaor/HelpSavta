@@ -13,7 +13,7 @@ const Home: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="mb-4 md:mb-6">
             <img
-              src="/assets/tab_image.png"
+              src="/tab_image.png"
               alt="לוגו עזרה טכנית בהתנדבות"
               className="brand-hero-logo"
             />

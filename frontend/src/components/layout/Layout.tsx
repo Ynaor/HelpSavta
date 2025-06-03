@@ -48,7 +48,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="flex items-center space-x-reverse space-x-2 md:space-x-4">
               <div className="flex-shrink-0">
                 <img
-                  src="/assets/tab_image.png"
+                  src="/tab_image.png"
                   alt="לוגו עזרה טכנית בהתנדבות"
                   className="w-12 h-12 md:w-16 md:h-16 rounded-lg object-contain"
                 />
