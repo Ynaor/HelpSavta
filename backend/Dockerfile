@@ -67,7 +67,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/node_modules/.prisma ./node_modul
 COPY --chown=nodejs:nodejs prisma ./prisma/
 
 # Copy email templates and other assets
-COPY --chown=nodejs:nodejs src/templates ./src/templates/
+COPY --chown=nodejs:nodejs src/templates ./dist/templates/
 
 # Copy startup script and make it executable
 COPY --chown=nodejs:nodejs start.sh ./start.sh
