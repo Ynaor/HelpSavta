@@ -137,10 +137,10 @@ const RequestHelp: React.FC = () => {
       <div className="max-w-2xl mx-auto py-8 md:py-16 px-4">
         <Card className="text-center">
           <CardHeader>
-            <div className="w-12 h-12 md:w-16 md:h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-              <Check className="w-6 h-6 md:w-8 md:h-8 text-green-600" />
+            <div className="brand-success-icon-container w-12 h-12 md:w-16 md:h-16 mx-auto mb-3 md:mb-4">
+              <Check className="brand-success-icon w-6 h-6 md:w-8 md:h-8" />
             </div>
-            <CardTitle className="text-xl md:text-2xl text-green-600">
+            <CardTitle className="text-xl md:text-2xl brand-success-title">
               בקשתך נשלחה בהצלחה!
             </CardTitle>
             <CardDescription>
@@ -149,14 +149,14 @@ const RequestHelp: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             {selectedSlot && (
-              <div className="bg-green-50 p-4 rounded-lg">
+              <div className="brand-success-section">
                 <h3 className="font-medium mb-2">זמני הבקשה שנבחרו:</h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm brand-text-muted">
                   {formatDate(selectedSlot.date)} בשעה {selectedSlot.start_time}-{selectedSlot.end_time}
                 </p>
               </div>
             )}
-            <div className="text-sm text-gray-600">
+            <div className="text-sm brand-text-muted">
               <p>מתנדב יקבל את הבקשה ויצור איתך קשר לתיאום פרטים נוספים.</p>
             </div>
           </CardContent>
@@ -175,8 +175,8 @@ const RequestHelp: React.FC = () => {
               <div
                 className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-xs md:text-sm font-medium ${
                   step <= currentStep
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-600'
+                    ? 'brand-progress-step-active'
+                    : 'brand-progress-step-inactive'
                 }`}
               >
                 {step}
@@ -184,7 +184,7 @@ const RequestHelp: React.FC = () => {
               {step < 3 && (
                 <div
                   className={`w-8 md:w-16 h-1 mx-1 md:mx-2 ${
-                    step < currentStep ? 'bg-blue-500' : 'bg-gray-200'
+                    step < currentStep ? 'brand-progress-bar-active' : 'brand-progress-bar-inactive'
                   }`}
                 />
               )}
@@ -192,13 +192,13 @@ const RequestHelp: React.FC = () => {
           ))}
         </div>
         <div className="flex justify-center mt-3 md:mt-4 space-x-reverse space-x-4 md:space-x-8">
-          <span className={`text-xs md:text-sm ${currentStep >= 1 ? 'text-blue-600 font-medium' : 'text-gray-500'}`}>
+          <span className={`text-xs md:text-sm ${currentStep >= 1 ? 'brand-progress-label-active' : 'brand-progress-label-inactive'}`}>
             פרטים אישיים
           </span>
-          <span className={`text-xs md:text-sm ${currentStep >= 2 ? 'text-blue-600 font-medium' : 'text-gray-500'}`}>
+          <span className={`text-xs md:text-sm ${currentStep >= 2 ? 'brand-progress-label-active' : 'brand-progress-label-inactive'}`}>
             בחירת זמן
           </span>
-          <span className={`text-xs md:text-sm ${currentStep >= 3 ? 'text-blue-600 font-medium' : 'text-gray-500'}`}>
+          <span className={`text-xs md:text-sm ${currentStep >= 3 ? 'brand-progress-label-active' : 'brand-progress-label-inactive'}`}>
             אישור
           </span>
         </div>
@@ -220,7 +220,7 @@ const RequestHelp: React.FC = () => {
 
         <CardContent>
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-reverse space-x-2 text-red-700">
+            <div className="mb-6 p-4 brand-error-message">
               <AlertCircle className="w-5 h-5" />
               <span>{error}</span>
             </div>
@@ -336,22 +336,22 @@ const RequestHelp: React.FC = () => {
               <div className="space-y-4">
                 {loading ? (
                   <div className="text-center py-8">
-                    <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
-                    <p className="mt-4 text-gray-600">טוען זמנים זמינים...</p>
+                    <div className="animate-spin w-8 h-8 border-4 brand-loading-spinner rounded-full mx-auto"></div>
+                    <p className="mt-4 brand-loading-text">טוען זמנים זמינים...</p>
                   </div>
                 ) : availableSlots.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-600">אין זמנים זמינים כרגע</p>
-                    <p className="text-sm text-gray-500 mt-2">אנא נסה שוב מאוחר יותר</p>
+                    <p className="brand-text-muted">אין זמנים זמינים כרגע</p>
+                    <p className="text-sm brand-text-muted opacity-70 mt-2">אנא נסה שוב מאוחר יותר</p>
                   </div>
                 ) : (
                   <div>
                     {/* Time slots container with fixed height and scroll */}
-                    <div className="max-h-96 overflow-y-auto border rounded-lg p-4 bg-gray-50">
+                    <div className="brand-time-slots-container">
                       <div className="space-y-6">
                         {Object.entries(groupSlotsByDate(availableSlots)).map(([date, slots]) => (
                           <div key={date}>
-                            <h3 className="font-medium mb-3 sticky top-0 bg-gray-50 py-2 border-b border-gray-200">
+                            <h3 className="brand-time-slot-header">
                               {formatDate(date)}
                             </h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
@@ -362,8 +362,8 @@ const RequestHelp: React.FC = () => {
                                   onClick={() => handleSlotSelection(slot)}
                                   className={`p-2 md:p-3 rounded-lg border text-sm md:text-base transition-colors ${
                                     selectedSlot?.id === slot.id
-                                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                      : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                                      ? 'brand-time-slot-selected'
+                                      : 'brand-time-slot-unselected'
                                   }`}
                                 >
                                   {slot.start_time} - {slot.end_time}
@@ -377,10 +377,10 @@ const RequestHelp: React.FC = () => {
                     
                     {/* Selected slot indicator - always visible below the scrollable area */}
                     {selectedSlot && (
-                      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="mt-4 p-3 brand-selected-slot-indicator">
                         <div className="flex items-center space-x-reverse space-x-2">
-                          <Check className="w-4 h-4 text-blue-600" />
-                          <span className="text-sm font-medium text-blue-700">
+                          <Check className="w-4 h-4 brand-selected-slot-text" />
+                          <span className="text-sm font-medium brand-selected-slot-text">
                             זמן נבחר: {formatDate(selectedSlot.date)} בשעה {selectedSlot.start_time}-{selectedSlot.end_time}
                           </span>
                         </div>
@@ -394,7 +394,7 @@ const RequestHelp: React.FC = () => {
             {/* Step 3: Confirmation */}
             {currentStep === 3 && (
               <div className="space-y-6">
-                <div className="bg-gray-50 p-4 md:p-6 rounded-lg space-y-4">
+                <div className="brand-summary-container">
                   <h3 className="font-medium text-base md:text-lg">סיכום הבקשה</h3>
                   
                   <div className="space-y-3 text-xs md:text-sm">
@@ -426,12 +426,12 @@ const RequestHelp: React.FC = () => {
                     )}
                     <div className="flex flex-col">
                       <span className="font-medium">תיאור הבעיה:</span>
-                      <span className="mt-1 bg-white p-3 rounded border">{watch('problem_description')}</span>
+                      <span className="mt-1 brand-summary-field">{watch('problem_description')}</span>
                     </div>
                     {watch('notes') && (
                       <div className="flex flex-col">
                         <span className="font-medium">הערות:</span>
-                        <span className="mt-1 bg-white p-3 rounded border">{watch('notes')}</span>
+                        <span className="mt-1 brand-summary-field">{watch('notes')}</span>
                       </div>
                     )}
                   </div>
@@ -458,7 +458,7 @@ const RequestHelp: React.FC = () => {
                 className="flex items-center justify-center space-x-reverse space-x-2 order-1 sm:order-2"
               >
                 {loading ? (
-                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  <div className="animate-spin w-4 h-4 border-2 brand-loading-spinner-on-primary rounded-full"></div>
                 ) : (
                   <>
                     <span>
