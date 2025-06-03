@@ -1,0 +1,83 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: helpsavta-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: helpsavta_db
+      POSTGRES_USER: helpsavta_user
+      POSTGRES_PASSWORD: helpsavta_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - helpsavta-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U helpsavta_user -d helpsavta_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: helpsavta-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql://helpsavta_user:helpsavta_password@postgres:5432/helpsavta_db?schema=public&connection_limit=20&pool_timeout=20
+      DB_POOL_MIN: 2
+      DB_POOL_MAX: 20
+      DB_POOL_ACQUIRE_TIMEOUT: 60000
+      DB_POOL_IDLE_TIMEOUT: 10000
+      SESSION_SECRET: your-super-secret-session-key-change-this-in-production-min-32-chars
+      SESSION_MAX_AGE: 86400000
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 100
+      FRONTEND_URL: http://localhost:5173
+      DEFAULT_ADMIN_USERNAME: admin
+      DEFAULT_ADMIN_PASSWORD: admin123
+      # Complete SMTP configuration for email validation
+      EMAIL_HOST: smtp.gmail.com
+      EMAIL_PORT: 587
+      EMAIL_USER: test@example.com
+      EMAIL_PASS: dummy-password
+      EMAIL_FROM: test@example.com
+      EMAIL_SECURE: false
+      EMAIL_FROM_NAME: Help Savta Local
+      EMAIL_REPLY_TO: support@example.com
+      SUPPORT_EMAIL: support@example.com
+      LOG_LEVEL: info
+      HEALTH_CHECK_PATH: /health
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - helpsavta-network
+    volumes:
+      # Mount email templates for development
+      - ./backend/src/templates:/app/src/templates:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  helpsavta-network:
+    driver: bridge

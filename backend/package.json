@@ -13,7 +13,7 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:migrate:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
-    "db:seed": "ts-node prisma/seed.ts",
+    "db:seed": "node prisma/seed-wrapper.js",
     "db:setup": "npm run db:generate && npm run db:push && npm run db:seed",
     "db:backup": "ts-node scripts/backup-restore.ts backup",
     "db:restore": "ts-node scripts/backup-restore.ts restore",
