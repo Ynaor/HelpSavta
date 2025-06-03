@@ -28,7 +28,27 @@ const envSchema = Joi.object({
   RATE_LIMIT_MAX_REQUESTS: Joi.number().default(100),
   
   // CORS Configuration
-  FRONTEND_URL: Joi.string().uri().required(),
+  FRONTEND_URL: Joi.string().custom((value, helpers) => {
+    // Allow Railway template placeholders like ${{Frontend.${{RAILWAY_PUBLIC_DOMAIN}}}}
+    const railwayTemplatePattern = /^\$\{\{.*\}\}$/;
+    if (railwayTemplatePattern.test(value)) {
+      return value;
+    }
+    
+    // Allow Railway internal domains (with or without protocol)
+    const railwayInternalPattern = /^[a-z0-9-]+\.railway\.internal(:\d+)?$/;
+    if (railwayInternalPattern.test(value)) {
+      return value;
+    }
+    
+    // For all other values, validate as URI
+    const uriValidation = Joi.string().uri().validate(value);
+    if (uriValidation.error) {
+      return helpers.error('string.uri');
+    }
+    
+    return value;
+  }, 'Railway template, Railway internal domain, or URI validation').required(),
   ALLOWED_ORIGINS: Joi.string().default(''),
   
   // Admin Configuration
