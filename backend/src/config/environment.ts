@@ -149,7 +149,7 @@ export const environment = {
     maxAge: env.SESSION_MAX_AGE,
     secure: env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
   },
   
   // Security

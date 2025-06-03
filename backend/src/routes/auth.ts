@@ -42,6 +42,35 @@ router.post('/login', validateBody(schemas.adminLogin), asyncHandler(async (req,
   req.session.username = admin.username;
   req.session.role = (admin as any).role;
 
+  // DEBUG: Log session and cookie details for diagnosis
+  console.log('=== LOGIN SESSION DEBUG ===');
+  console.log('Session ID:', req.sessionID);
+  console.log('Session data before save:', {
+    userId: req.session.userId,
+    username: req.session.username,
+    role: req.session.role
+  });
+  console.log('Cookie configuration:', {
+    secure: req.session.cookie.secure,
+    sameSite: req.session.cookie.sameSite,
+    domain: req.session.cookie.domain,
+    httpOnly: req.session.cookie.httpOnly,
+    maxAge: req.session.cookie.maxAge
+  });
+  console.log('Request headers origin:', req.get('origin'));
+  console.log('Environment NODE_ENV:', process.env.NODE_ENV);
+
+  // Force session save and log result
+  req.session.save((err) => {
+    if (err) {
+      console.error('SESSION SAVE ERROR:', err);
+    } else {
+      console.log('Session saved successfully');
+      console.log('Session after save:', req.session);
+      console.log('Response headers will include Set-Cookie:', req.session.cookie);
+    }
+  });
+
   res.json({
     success: true,
     message: 'התחברת בהצלחה',
@@ -110,6 +139,24 @@ router.get('/me', requireAuth, asyncHandler(async (req, res) => {
  */
 router.get('/status', asyncHandler(async (req, res) => {
   const isAuthenticated = !!req.session.userId;
+  
+  // DEBUG: Log session status check details
+  console.log('=== AUTH STATUS DEBUG ===');
+  console.log('Session ID:', req.sessionID);
+  console.log('Session data:', {
+    userId: req.session.userId,
+    username: req.session.username,
+    role: req.session.role
+  });
+  console.log('Is authenticated:', isAuthenticated);
+  console.log('Request cookies:', req.headers.cookie);
+  console.log('Request origin:', req.get('origin'));
+  console.log('Session cookie config:', {
+    secure: req.session.cookie.secure,
+    sameSite: req.session.cookie.sameSite,
+    domain: req.session.cookie.domain,
+    httpOnly: req.session.cookie.httpOnly
+  });
   
   res.json({
     success: true,
