@@ -38,6 +38,11 @@ RUN npx prisma generate
 # Build TypeScript
 RUN npm run build
 
+# Validate build output - ensure server.js exists at expected location
+RUN ls -la dist/ && \
+    test -f dist/server.js || (echo "ERROR: dist/server.js not found after build!" && exit 1) && \
+    echo "✓ Build validation passed: dist/server.js exists"
+
 # Production stage
 FROM node:18-alpine AS production
 

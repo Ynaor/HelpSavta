@@ -15,7 +15,7 @@
     "noImplicitOverride": true,
     "types": ["jest", "node"],
     "outDir": "./dist",
-    "rootDir": "./",
+    "rootDir": "./src",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -28,8 +28,7 @@
     "emitDecoratorMetadata": true
   },
   "include": [
-    "src/**/*",
-    "prisma/**/*"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
@@ -37,6 +36,6 @@
     "build",
     "coverage",
     "scripts",
-    "prisma/schema.prisma"
+    "prisma"
   ]
 }
