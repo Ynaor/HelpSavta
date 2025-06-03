@@ -37,8 +37,8 @@ const AdminLogin: React.FC = () => {
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <LogIn className="w-8 h-8 text-blue-600" />
+          <div className="w-16 h-16 brand-admin-icon-container mx-auto mb-4">
+            <LogIn className="w-8 h-8 brand-admin-icon" />
           </div>
           {/* <CardTitle className="text-2xl">כניסת מנהלים</CardTitle> */}
           <CardDescription>
@@ -48,7 +48,7 @@ const AdminLogin: React.FC = () => {
 
         <CardContent>
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-reverse space-x-2 text-red-700">
+            <div className="mb-6 p-4 brand-error-message">
               <AlertCircle className="w-5 h-5" />
               <span>{error}</span>
             </div>
@@ -93,7 +93,7 @@ const AdminLogin: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 brand-password-toggle"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -110,7 +110,7 @@ const AdminLogin: React.FC = () => {
             >
               {loading ? (
                 <div className="flex items-center space-x-reverse space-x-2">
-                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  <div className="animate-spin w-4 h-4 border-2 brand-loading-spinner-on-primary rounded-full"></div>
                   <span>מתחבר...</span>
                 </div>
               ) : (
@@ -122,11 +122,11 @@ const AdminLogin: React.FC = () => {
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-600">
+          <div className="mt-6 pt-6 brand-admin-footer">
             <p>משתמש רגיל?</p>
             <button
               onClick={() => navigate('/')}
-              className="text-blue-600 hover:text-blue-500 font-medium"
+              className="brand-admin-link"
             >
               חזור לדף הבית
             </button>
