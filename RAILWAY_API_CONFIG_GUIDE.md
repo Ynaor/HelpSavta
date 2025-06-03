@@ -133,6 +133,39 @@ If using Railway internal URLs, you **MUST** include:
    - Symptom: Timeouts when using `*.railway.internal` URLs
    - Solution: Switch to public URL format: `https://your-backend-service.up.railway.app/api`
 
+## Proxy Trust Configuration
+
+Railway uses reverse proxies (load balancers) that set the `X-Forwarded-For` header to identify the original client IP. The Express server needs to be configured to trust these proxies for rate limiting to work correctly.
+
+### The Problem
+Without proper proxy trust configuration, you may encounter this error:
+```
+ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust proxy' setting is false (default)
+Code: ERR_ERL_UNEXPECTED_X_FORWARDED_FOR
+```
+
+### The Solution
+The application automatically configures proxy trust based on the environment:
+
+- **Production/Staging**: Trusts the first proxy (Railway's load balancer)
+- **Development**: Doesn't trust any proxies by default
+
+### Environment Variable
+You can override the default behavior by setting the `TRUST_PROXY` environment variable:
+
+- `TRUST_PROXY=false` - Don't trust any proxies (default for development)
+- `TRUST_PROXY=true` - Trust all proxies (not recommended for security)
+- `TRUST_PROXY=1` - Trust the first proxy only (recommended for Railway)
+- `TRUST_PROXY=2` - Trust the first 2 proxies
+
+### Railway Configuration
+For Railway deployment, the recommended setting is already configured in the production environment template:
+```
+TRUST_PROXY=1
+```
+
+This tells Express to trust Railway's load balancer, allowing rate limiting and other middleware to work correctly with the real client IP addresses.
+
 ## CORS Configuration
 
 For Railway deployment, you must configure CORS on the backend to allow requests from your frontend domain.
