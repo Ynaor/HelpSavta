@@ -1,0 +1,571 @@
+/*
+  Tailwind CSS directives - these are processed by PostCSS during build
+  VSCode may show warnings, but these are valid Tailwind directives
+*/
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Logo-based color palette */
+    --background: 300 20% 99%;          /* White: #FDFCFDff */
+    --foreground: 183 53% 22%;          /* Dark Slate Gray: #1B5457ff */
+    --card: 300 20% 99%;                /* White: #FDFCFDff */
+    --card-foreground: 183 53% 22%;     /* Dark Slate Gray: #1B5457ff */
+    --popover: 300 20% 99%;             /* White: #FDFCFDff */
+    --popover-foreground: 183 53% 22%;  /* Dark Slate Gray: #1B5457ff */
+    --primary: 183 53% 22%;             /* Dark Slate Gray: #1B5457ff */
+    --primary-foreground: 300 20% 99%;  /* White: #FDFCFDff */
+    --secondary: 183 13% 69%;           /* Ash Gray: #A6B9BAff */
+    --secondary-foreground: 183 53% 22%; /* Dark Slate Gray: #1B5457ff */
+    --muted: 183 13% 69%;               /* Ash Gray: #A6B9BAff */
+    --muted-foreground: 184 49% 23%;    /* Dark Slate Gray 2: #1E5357ff */
+    --accent: 183 13% 69%;              /* Ash Gray: #A6B9BAff */
+    --accent-foreground: 183 53% 22%;   /* Dark Slate Gray: #1B5457ff */
+    --destructive: 0 84.2% 60.2%;       /* Keep destructive red for errors */
+    --destructive-foreground: 300 20% 99%;
+    --border: 183 13% 69%;              /* Ash Gray: #A6B9BAff */
+    --input: 183 13% 69%;               /* Ash Gray: #A6B9BAff */
+    --ring: 183 53% 22%;                /* Dark Slate Gray: #1B5457ff */
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark theme using logo colors */
+    --background: 183 54% 22%;          /* Dark Slate Gray 3: #1A5457ff */
+    --foreground: 300 20% 99%;          /* White: #FDFCFDff */
+    --card: 184 49% 23%;                /* Dark Slate Gray 2: #1E5357ff */
+    --card-foreground: 300 20% 99%;     /* White: #FDFCFDff */
+    --popover: 184 49% 23%;             /* Dark Slate Gray 2: #1E5357ff */
+    --popover-foreground: 300 20% 99%;  /* White: #FDFCFDff */
+    --primary: 183 13% 69%;             /* Ash Gray: #A6B9BAff */
+    --primary-foreground: 183 53% 22%;  /* Dark Slate Gray: #1B5457ff */
+    --secondary: 183 53% 22%;           /* Dark Slate Gray: #1B5457ff */
+    --secondary-foreground: 300 20% 99%; /* White: #FDFCFDff */
+    --muted: 183 53% 22%;               /* Dark Slate Gray: #1B5457ff */
+    --muted-foreground: 183 13% 69%;    /* Ash Gray: #A6B9BAff */
+    --accent: 183 53% 22%;              /* Dark Slate Gray: #1B5457ff */
+    --accent-foreground: 300 20% 99%;   /* White: #FDFCFDff */
+    --destructive: 0 72.2% 50.6%;       /* Keep destructive red for errors */
+    --destructive-foreground: 300 20% 99%;
+    --border: 183 53% 22%;              /* Dark Slate Gray: #1B5457ff */
+    --input: 183 53% 22%;               /* Dark Slate Gray: #1B5457ff */
+    --ring: 183 13% 69%;                /* Ash Gray: #A6B9BAff */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    font-size: 14px; /* Base size for mobile */
+  }
+  
+  /* Responsive font sizing - larger for elderly users on bigger screens */
+  @media (min-width: 768px) {
+    html {
+      font-size: 16px; /* Medium screens */
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    html {
+      font-size: 18px; /* Large screens - elderly-friendly */
+    }
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    line-height: 1.8; /* Enhanced line height for better readability */
+    font-weight: 500; /* Heavier font weight for better visibility */
+    letter-spacing: 0.025em; /* Improved letter spacing for readability */
+  }
+  
+  /* RTL Support */
+  html[dir="rtl"] {
+    direction: rtl;
+  }
+  
+  html[dir="rtl"] body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+}
+
+@layer components {
+  /* Hebrew Typography */
+  .text-hebrew {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+  }
+  
+  /* Status badges - using logo color palette */
+  .status-pending {
+    background-color: rgba(166, 185, 186, 0.2);
+    color: #1B5457;
+    border-color: rgba(166, 185, 186, 0.5);
+  }
+  
+  .status-scheduled {
+    background-color: rgba(27, 84, 87, 0.1);
+    color: #1B5457;
+    border-color: rgba(27, 84, 87, 0.3);
+  }
+  
+  .status-in_progress {
+    background-color: rgba(30, 83, 87, 0.1);
+    color: #1E5357;
+    border-color: rgba(30, 83, 87, 0.3);
+  }
+  
+  .status-completed {
+    background-color: rgba(26, 84, 87, 0.1);
+    color: #1A5457;
+    border-color: rgba(26, 84, 87, 0.3);
+  }
+  
+  .status-cancelled {
+    @apply bg-red-100 text-red-800 border-red-200;
+  }
+  
+  /* Urgency badges - using logo color palette */
+  .urgency-low {
+    background-color: rgba(166, 185, 186, 0.2);
+    color: #1B5457;
+    border-color: rgba(166, 185, 186, 0.5);
+  }
+  
+  .urgency-medium {
+    background-color: rgba(27, 84, 87, 0.1);
+    color: #1B5457;
+    border-color: rgba(27, 84, 87, 0.3);
+  }
+  
+  .urgency-high {
+    background-color: rgba(30, 83, 87, 0.1);
+    color: #1E5357;
+    border-color: rgba(30, 83, 87, 0.3);
+  }
+  
+  .urgency-urgent {
+    @apply bg-red-100 text-red-800 border-red-200;
+  }
+  
+  /* Form styles */
+  .form-field {
+    @apply space-y-2;
+  }
+  
+  .form-label {
+    @apply text-sm md:text-base lg:text-lg font-semibold leading-relaxed peer-disabled:cursor-not-allowed peer-disabled:opacity-70;
+    letter-spacing: 0.025em;
+  }
+  
+  .form-input {
+    @apply flex h-12 md:h-14 w-full rounded-md border-2 border-input bg-background px-3 md:px-5 py-3 md:py-4 text-base md:text-lg ring-offset-background file:border-0 file:bg-transparent file:text-base md:file:text-lg file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring focus-visible:ring-offset-3 disabled:cursor-not-allowed disabled:opacity-50;
+    font-weight: 500;
+    letter-spacing: 0.025em;
+  }
+  
+  .form-textarea {
+    @apply flex min-h-[100px] md:min-h-[120px] w-full rounded-md border-2 border-input bg-background px-3 md:px-5 py-3 md:py-4 text-base md:text-lg ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring focus-visible:ring-offset-3 disabled:cursor-not-allowed disabled:opacity-50;
+    font-weight: 500;
+    line-height: 1.8;
+    letter-spacing: 0.025em;
+  }
+  
+  /* Button styles - Responsive with elderly-friendly sizing on larger screens */
+  .btn {
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-base md:text-lg font-semibold ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring focus-visible:ring-offset-3 disabled:pointer-events-none disabled:opacity-50;
+    min-height: 44px; /* Mobile touch target */
+    min-width: 44px;
+    letter-spacing: 0.025em;
+  }
+  
+  @media (min-width: 768px) {
+    .btn {
+      min-height: 48px; /* Enhanced touch target for elderly users on larger screens */
+      min-width: 48px;
+    }
+  }
+  
+  .btn-primary {
+    @apply btn bg-primary text-primary-foreground hover:bg-primary/90 h-12 md:h-14 px-6 md:px-8 py-3 md:py-4;
+  }
+
+  .btn-secondary {
+    @apply btn bg-secondary text-secondary-foreground hover:bg-secondary/80 h-12 md:h-14 px-6 md:px-8 py-3 md:py-4;
+  }
+
+  .btn-destructive {
+    @apply btn bg-destructive text-destructive-foreground hover:bg-destructive/90 h-12 md:h-14 px-6 md:px-8 py-3 md:py-4;
+  }
+
+  .btn-outline {
+    @apply btn border-2 md:border-3 border-primary bg-background text-primary hover:bg-primary hover:text-primary-foreground h-12 md:h-14 px-6 md:px-8 py-3 md:py-4;
+  }
+
+  .btn-ghost {
+    @apply btn hover:bg-accent hover:text-accent-foreground h-12 md:h-14 px-6 md:px-8 py-3 md:py-4;
+  }
+  
+  /* Card styles */
+  .card {
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm;
+  }
+  
+  .card-header {
+    @apply flex flex-col space-y-1.5 p-4 md:p-6;
+  }
+
+  .card-title {
+    @apply text-xl md:text-2xl lg:text-3xl font-semibold leading-tight tracking-normal;
+    letter-spacing: 0.025em;
+  }
+
+  .card-description {
+    @apply text-sm md:text-base lg:text-lg text-muted-foreground leading-relaxed;
+    letter-spacing: 0.025em;
+  }
+
+  .card-content {
+    @apply p-4 md:p-6 pt-0;
+  }
+
+  .card-footer {
+    @apply flex items-center p-4 md:p-6 pt-0;
+  }
+
+  /* Calendar specific styles */
+  .calendar-grid {
+    @apply grid grid-cols-8 min-h-0;
+  }
+  
+  .calendar-time-slot {
+    @apply relative min-h-[60px] border-b p-1 transition-colors cursor-pointer;
+    border-color: rgba(166, 185, 186, 0.3);
+  }
+  
+  .calendar-time-slot:hover {
+    background-color: rgba(166, 185, 186, 0.1);
+  }
+  
+  .calendar-event {
+    @apply p-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md border border-opacity-30;
+  }
+  
+  .calendar-event-compact {
+    @apply p-1 rounded text-xs cursor-pointer transition-all duration-200 hover:shadow-sm border-r-2;
+  }
+  
+  .calendar-current-time {
+    @apply absolute top-0 left-0 right-0 h-1 bg-red-500 z-10;
+  }
+  
+  .calendar-today {
+    background-color: rgba(27, 84, 87, 0.05);
+    border-color: rgba(27, 84, 87, 0.2);
+  }
+  
+  .calendar-current-slot {
+    background-color: rgba(166, 185, 186, 0.1);
+    border-color: rgba(166, 185, 186, 0.3);
+  }
+  
+  /* Calendar event colors - using logo color palette */
+  .calendar-event-pending {
+    background-color: rgba(166, 185, 186, 0.1);
+    border-color: #A6B9BA;
+    color: #1B5457;
+  }
+  
+  .calendar-event-in-progress {
+    background-color: rgba(30, 83, 87, 0.1);
+    border-color: #1E5357;
+    color: #1E5357;
+  }
+  
+  .calendar-event-completed {
+    background-color: rgba(26, 84, 87, 0.1);
+    border-color: #1A5457;
+    color: #1A5457;
+  }
+  
+  .calendar-event-cancelled {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+    color: #ef4444;
+  }
+  
+  .calendar-event-available {
+    background-color: rgba(27, 84, 87, 0.1);
+    border-color: #1B5457;
+    color: #1B5457;
+  }
+  
+  /* Calendar responsive utilities */
+  .calendar-responsive-text {
+    @apply text-xs sm:text-sm md:text-base;
+  }
+  
+  .calendar-responsive-padding {
+    @apply p-1 sm:p-2 md:p-3;
+  }
+  
+  /* Calendar scrollable container */
+  .calendar-scroll-container {
+    max-height: calc(100vh - 300px);
+    overflow-y: auto;
+  }
+  
+  /* Text truncation utilities for calendar */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+  }
+
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+  
+  /* Calendar animation utilities */
+  .calendar-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Calendar legend styles */
+  .calendar-legend-item {
+    @apply flex items-center space-x-reverse space-x-1 text-xs;
+  }
+  
+  .calendar-legend-dot {
+    @apply w-3 h-3 rounded-full;
+  }
+  /* Brand-specific utility classes for consistent styling */
+  .brand-logo-section {
+    @apply py-8 md:py-12;
+  }
+
+  .brand-hero-section {
+    @apply bg-gradient-to-l from-primary to-primary/90 text-primary-foreground py-8 md:py-12;
+  }
+  
+  .brand-hero-logo {
+    @apply w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 mx-auto object-contain rounded-2xl;
+  }
+  
+  .brand-hero-button {
+    @apply bg-background text-primary hover:bg-secondary text-base md:text-lg px-6 md:px-8 py-3 md:py-4 w-full sm:w-auto;
+  }
+  
+  .brand-section-title {
+    @apply text-2xl md:text-3xl font-bold text-foreground mb-3 md:mb-4;
+  }
+  
+  .brand-section-description {
+    @apply text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto;
+  }
+  
+  .brand-service-icon-container {
+    @apply w-12 h-12 md:w-16 md:h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4;
+  }
+  
+  .brand-service-icon {
+    @apply w-6 h-6 md:w-8 md:h-8 text-primary;
+  }
+  
+  .brand-step-indicator {
+    @apply w-16 h-16 md:w-20 md:h-20 bg-primary text-primary-foreground rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6 text-xl md:text-2xl font-bold;
+  }
+  
+  .brand-cta-section {
+    @apply bg-accent text-accent-foreground py-12 md:py-16;
+  }
+  
+  .brand-secondary-section {
+    @apply bg-secondary/20 py-12 md:py-16;
+  }
+  
+  .brand-admin-card {
+    @apply bg-muted/30;
+  }
+  
+  /* Progress indicators */
+  .brand-progress-step-active {
+    @apply bg-primary text-primary-foreground;
+  }
+  
+  .brand-progress-step-inactive {
+    @apply bg-muted text-muted-foreground;
+  }
+  
+  .brand-progress-bar-active {
+    @apply bg-primary;
+  }
+  
+  .brand-progress-bar-inactive {
+    @apply bg-muted;
+  }
+  
+  .brand-progress-label-active {
+    @apply text-primary font-medium;
+  }
+  
+  .brand-progress-label-inactive {
+    @apply text-muted-foreground;
+  }
+  
+  /* Form elements */
+  .brand-error-message {
+    @apply bg-destructive/10 border border-destructive/30 rounded-lg flex items-center space-x-reverse space-x-2 text-destructive;
+  }
+  
+  .brand-success-icon-container {
+    @apply bg-secondary/30 rounded-full flex items-center justify-center;
+  }
+  
+  .brand-success-icon {
+    @apply text-primary;
+  }
+  
+  .brand-success-title {
+    @apply text-primary;
+  }
+  
+  .brand-success-section {
+    @apply bg-secondary/20 p-4 rounded-lg;
+  }
+  
+  /* Loading states */
+  .brand-loading-spinner {
+    @apply border-primary border-t-transparent;
+  }
+  
+  .brand-loading-spinner-on-primary {
+    @apply border-primary-foreground border-t-transparent;
+  }
+  
+  .brand-loading-text {
+    @apply text-muted-foreground;
+  }
+  
+  /* Time slots and calendar */
+  .brand-time-slots-container {
+    @apply max-h-96 overflow-y-auto border rounded-lg p-4 bg-muted/20;
+  }
+  
+  .brand-time-slot-header {
+    @apply font-medium mb-3 sticky top-0 bg-muted/20 py-2 border-b border-border;
+  }
+  
+  .brand-time-slot-selected {
+    @apply border-primary bg-primary/10 text-primary;
+  }
+  
+  .brand-time-slot-unselected {
+    @apply border-border hover:border-primary/50 hover:bg-primary/5;
+  }
+  
+  .brand-selected-slot-indicator {
+    @apply bg-primary/10 border border-primary/30 rounded-lg;
+  }
+  
+  .brand-selected-slot-text {
+    @apply text-primary;
+  }
+  
+  /* Confirmation and summary */
+  .brand-summary-container {
+    @apply bg-muted/20 p-4 md:p-6 rounded-lg space-y-4;
+  }
+  
+  .brand-summary-field {
+    @apply bg-background p-3 rounded border;
+  }
+  
+  /* Admin login */
+  .brand-admin-icon-container {
+    @apply bg-secondary rounded-full flex items-center justify-center;
+  }
+  
+  .brand-admin-icon {
+    @apply text-primary;
+  }
+  
+  .brand-password-toggle {
+    @apply text-muted-foreground hover:text-foreground;
+  }
+  
+  .brand-admin-footer {
+    @apply border-t border-border text-center text-sm text-muted-foreground;
+  }
+  
+  .brand-admin-link {
+    @apply text-primary hover:text-primary/80 font-medium;
+  }
+  
+  /* Generic brand utilities */
+  .brand-text-primary {
+    @apply text-primary;
+  }
+  
+  .brand-text-muted {
+    @apply text-muted-foreground;
+  }
+  
+  .brand-bg-primary {
+    @apply bg-primary;
+  }
+  
+  .brand-bg-secondary {
+    @apply bg-secondary;
+  }
+  
+  .brand-border-primary {
+    @apply border-primary;
+  }
+}
+
+@layer utilities {
+  /* RTL utilities */
+  .rtl\:text-right {
+    text-align: right;
+  }
+  
+  .rtl\:text-left {
+    text-align: left;
+  }
+  
+  .rtl\:ml-auto {
+    margin-left: auto;
+  }
+  
+  .rtl\:mr-auto {
+    margin-right: auto;
+  }
+  
+  /* Loading spinner */
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+}

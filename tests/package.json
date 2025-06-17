@@ -1,0 +1,31 @@
+{
+  "name": "helpsavta-tests",
+  "version": "1.0.0",
+  "description": "Unified test suite for HelpSavta",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd ../backend && npm test",
+    "test:frontend": "cd ../frontend && npm test",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:coverage": "npm run test:backend -- --coverage && npm run test:frontend -- --coverage",
+    "test:watch": "concurrently \"npm run test:backend -- --watch\" \"npm run test:frontend -- --watch\"",
+    "clean": "rm -rf backend/coverage frontend/coverage e2e/test-results e2e/playwright-report"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/express": "^5.0.2",
+    "express": "^5.1.0",
+    "supertest": "^7.1.1"
+  },
+  "keywords": [
+    "tests",
+    "e2e",
+    "integration",
+    "unit"
+  ],
+  "author": "Tech Help Volunteers",
+  "license": "MIT"
+}
